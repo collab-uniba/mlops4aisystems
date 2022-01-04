@@ -314,3 +314,4 @@ cython_debug/
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,jupyternotebooks,pycharm,macos
 dataset.csv.gz
 reporeaper.csv
+*.stamp

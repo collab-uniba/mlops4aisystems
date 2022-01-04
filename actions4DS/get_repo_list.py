@@ -11,7 +11,8 @@ from models import GitHubSlug
 
 
 # Method 1
-# Get repositories from the dataset: “Boa Meets Python: A Boa Dataset of Data Science Software in Python Language”
+# Get repositories from the dataset: “Boa Meets Python: A Boa Dataset of
+# Data Science Software in Python Language”
 def get_repos_from_boa_dataset() -> GitHubSlug:
     """Get the list of repo slugs from the "Boa Meets Python" dataset.
 
@@ -40,7 +41,7 @@ def get_repos_from_boa_dataset() -> GitHubSlug:
 
     r = requests.get(URL)
     lines = r.text.splitlines()
-    regex = re.compile("^lib\[(.*)\] = (.*)$")
+    regex = re.compile(r"^lib\[(.*)\] = (.*)$")
     slugs = [
         GitHubSlug(match.group(1)) for line in lines if (match := regex.match(line))
     ]
@@ -49,7 +50,9 @@ def get_repos_from_boa_dataset() -> GitHubSlug:
 
 
 def get_repos_from_reporeaper() -> GitHubSlug:
-    """Get the list of repo slugs from the [RepoReaper](https://reporeapers.github.io) dataset."""
+    """Get the list of repo slugs from the
+    [RepoReaper](https://reporeapers.github.io) dataset.
+    """
 
     dataset_gzip = "dataset.csv.gz"
     if not Path(dataset_gzip).exists():
@@ -80,4 +83,4 @@ def get_repos_from_reporeaper() -> GitHubSlug:
     df["stars"] = df["stars"].astype(int)
     slugs = df.query("stars > 1")["repository"]
     print(f"Total number of repositories with more than 1 stars: {len(slugs)}")
-    return [slug for slug in slugs]
+    return (slug for slug in slugs)

@@ -12,7 +12,7 @@ GITHUB_PERSONAL_ACCESS_TOKEN=<your-personal-GitHub-access-token>
 
 To install the dependencies, run:
 ```shell
-poetry install
+make install
 ```
 
 ## Execution
@@ -21,5 +21,5 @@ Open a poetry shell and then run the scripts as follows:
 
 ```shell
 poetry shell
-python main.py
+python actions4DS/main.py
 ```
