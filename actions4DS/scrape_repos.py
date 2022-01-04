@@ -69,16 +69,19 @@ class GitHubScraper:
                 workflows = repo.get_contents(".github/workflows")
 
                 local_repo_path = Path(self.data_dir) / slug.repo_owner / slug.repo_name
-                local_repo_path.mkdir(parents=True)
 
-                for workflow in workflows:
+                if not local_repo_path.exists():
 
-                    workflow_filename = Path(workflow.path).name
-                    local_workflow_path = local_repo_path / workflow_filename
+                    local_repo_path.mkdir(parents=True)
 
-                    yaml_string = workflow.decoded_content.decode("utf8")
-                    yaml_object = self.yaml_parser.load(yaml_string)
-                    self.yaml_parser.dump(yaml_object, local_workflow_path)
+                    for workflow in workflows:
+
+                        workflow_filename = Path(workflow.path).name
+                        local_workflow_path = local_repo_path / workflow_filename
+
+                        yaml_string = workflow.decoded_content.decode("utf8")
+                        yaml_object = self.yaml_parser.load(yaml_string)
+                        self.yaml_parser.dump(yaml_object, local_workflow_path)
 
                 # Update scraping stats
                 self.scraping_stats["repos_with_at_least_one_workflow"] += 1

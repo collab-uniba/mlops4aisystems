@@ -41,18 +41,17 @@ def get_repos_from_boa_dataset() -> GitHubSlug:
     r = requests.get(URL)
     lines = r.text.splitlines()
     regex = re.compile("^lib\[(.*)\] = (.*)$")
-    slugs = [
+    return [
         GitHubSlug(match.group(1)) for line in lines if (match := regex.match(line))
     ]
 
-    return slugs
 
+def get_repos_from_reporeaper(data_dir: Path) -> GitHubSlug:
+    """Get the list of repo slugs from the [RepoReaper](https://reporeapers.github.io)\
+         dataset."""
 
-def get_repos_from_reporeaper() -> GitHubSlug:
-    """Get the list of repo slugs from the [RepoReaper](https://reporeapers.github.io) dataset."""
-
-    dataset_gzip = "dataset.csv.gz"
-    if not Path(dataset_gzip).exists():
+    dataset_gzip = data_dir / "dataset.csv.gz"
+    if not dataset_gzip.exists():
         URL = "https://reporeapers.github.io/static/downloads/dataset.csv.gz"
         print(f"Downloading {URL}...")
         try:
@@ -67,8 +66,8 @@ def get_repos_from_reporeaper() -> GitHubSlug:
     else:
         print("GZip file already exists. Skipping download.")
 
-    dataset = "reporeaper.csv"
-    if not Path(dataset).exists():
+    dataset = data_dir / "reporeaper.csv"
+    if not dataset.exists():
         print("Unzipping...")
         df = pd.read_csv(dataset_gzip, compression="gzip", header=0, sep=",")
         df.to_csv(dataset, index=False)
