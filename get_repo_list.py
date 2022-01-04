@@ -5,9 +5,11 @@ Generate a list of GitHub repositories containing data science projects.
 import requests
 import re
 
+from models import GitHubSlug
+
 # Method 1
 # Get repositories from the dataset: “Boa Meets Python: A Boa Dataset of Data Science Software in Python Language”
-def get_repos_from_boa_dataset() -> list:
+def get_repos_from_boa_dataset() -> GitHubSlug:
     """Get the list of repo slugs from the "Boa Meets Python" dataset.
 
     In [1], Biswas et al. present a dataset of 1,558 mature data science projects from GitHub, written in the Python programming language.
@@ -28,6 +30,8 @@ def get_repos_from_boa_dataset() -> list:
     r = requests.get(URL)
     lines = r.text.splitlines()
     regex = re.compile("^lib\[(.*)\] = (.*)$")
-    slugs = [match.group(1) for line in lines if (match := regex.match(line))]
+    slugs = [
+        GitHubSlug(match.group(1)) for line in lines if (match := regex.match(line))
+    ]
 
     return slugs

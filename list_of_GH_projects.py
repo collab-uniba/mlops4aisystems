@@ -18,7 +18,7 @@ total_number_of_workflows = 0
 pbar = tqdm(slugs)
 for slug in pbar:
     try:
-        contents = g.get_repo(slug).get_contents(".github/workflows")
+        contents = g.get_repo(str(slug)).get_contents(".github/workflows")
         pbar.set_description(f"Total workflows found = {total_number_of_workflows}")
         repos_with_workflow += 1
         total_number_of_workflows += len(contents)
