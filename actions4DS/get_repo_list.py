@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+from main import DATA_DIR
 from models import GitHubSlug
 
 
@@ -42,11 +43,9 @@ def get_repos_from_boa_dataset() -> GitHubSlug:
     r = requests.get(URL)
     lines = r.text.splitlines()
     regex = re.compile(r"^lib\[(.*)\] = (.*)$")
-    slugs = [
+    return (
         GitHubSlug(match.group(1)) for line in lines if (match := regex.match(line))
-    ]
-
-    return slugs
+    )
 
 
 def get_repos_from_reporeaper() -> GitHubSlug:
@@ -54,8 +53,8 @@ def get_repos_from_reporeaper() -> GitHubSlug:
     [RepoReaper](https://reporeapers.github.io) dataset.
     """
 
-    dataset_gzip = "dataset.csv.gz"
-    if not Path(dataset_gzip).exists():
+    dataset_gzip = Path(DATA_DIR, "dataset.csv.gz")
+    if not dataset_gzip.exists():
         URL = "https://reporeapers.github.io/static/downloads/dataset.csv.gz"
         print(f"Downloading {URL}...")
         try:
@@ -70,17 +69,17 @@ def get_repos_from_reporeaper() -> GitHubSlug:
     else:
         print("GZip file already exists. Skipping download.")
 
-    dataset = "reporeaper.csv"
-    if not Path(dataset).exists():
+    dataset = Path(DATA_DIR, "reporeaper.csv")
+    if not dataset.exists():
         print("Unzipping...")
         df = pd.read_csv(dataset_gzip, compression="gzip", header=0, sep=",")
         df.to_csv(dataset, index=False)
     else:
         print("CSV file already exists. Skipping unzipping.")
-        df = pd.read_csv(dataset, header=0, sep=",")
+        df = pd.read_csv(dataset, header=0, sep=",", dtype={"stars": object})
 
     df.drop(df.index[df["stars"] == "None"], inplace=True)
     df["stars"] = df["stars"].astype(int)
     slugs = df.query("stars > 1")["repository"]
     print(f"Total number of repositories with more than 1 stars: {len(slugs)}")
-    return (slug for slug in slugs)
+    return (GitHubSlug(slug) for slug in slugs)

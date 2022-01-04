@@ -3,7 +3,7 @@ import re
 
 class GitHubSlug:
     def __init__(self, slug_string: str) -> None:
-        regex = re.compile("^[^/\n]+/[^/\n]+$")
+        regex = re.compile(r"^[^/\n]+/[^/\n]+$")
         if regex.match(slug_string):
             self.slug = slug_string
         else:
