@@ -34,17 +34,14 @@ class GitHubScraper:
         }
 
     def _update_pbar_description(self, pbar):
+        """Update the total number of workflows displayed in the progress bar."""
         pbar.set_description(
             f"Total workflows found = {self.scraping_stats['total_number_of_workflows']}"
         )
 
-    def _check_rate_limit(self, g: Github):
-        """Check the rate limit of the Github API.
-
-        Args:
-            g (Github): the Github API object.
-        """
-        core_rate_limit = g.get_rate_limit().core
+    def _check_rate_limit(self):
+        """Check the rate limit of the Github API."""
+        core_rate_limit = self.github.get_rate_limit().core
         if core_rate_limit.remaining <= 5:
             print("Rate limit reached...")
             reset_timestamp = calendar.timegm(core_rate_limit.reset.timetuple())
@@ -64,7 +61,7 @@ class GitHubScraper:
         pbar = tqdm(slugs)
         for slug in pbar:
             try:
-                self._check_rate_limit(self.github)
+                self._check_rate_limit()
                 repo = self.github.get_repo(str(slug))
                 workflows = repo.get_contents(".github/workflows")
 
