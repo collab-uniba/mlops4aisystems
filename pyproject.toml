@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "githubactions4ds"
+version = "0.1.0"
+description = "Replication package for the CAIN 2022 experimentation"
+authors = ["Collab <http://collab.di.unba.it>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+PyGithub = "^1.55"
+requests = "^2.27.0"
+pandas = "^1.3.5"
+python-dotenv = "^0.19.2"
+tqdm = "^4.62.3"
+
+[tool.poetry.dev-dependencies]
+black = "^21.12b0"
+isort = "^5.10.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

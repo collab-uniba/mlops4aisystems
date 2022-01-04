@@ -2,10 +2,13 @@
 Generate a list of GitHub repositories containing data science projects.
 """
 
-import requests
 import re
+from pathlib import Path
 
+import pandas as pd
+import requests
 from models import GitHubSlug
+
 
 # Method 1
 # Get repositories from the dataset: “Boa Meets Python: A Boa Dataset of Data Science Software in Python Language”
@@ -43,3 +46,38 @@ def get_repos_from_boa_dataset() -> GitHubSlug:
     ]
 
     return slugs
+
+
+def get_repos_from_reporeaper() -> GitHubSlug:
+    """Get the list of repo slugs from the [RepoReaper](https://reporeapers.github.io) dataset."""
+
+    dataset_gzip = "dataset.csv.gz"
+    if not Path(dataset_gzip).exists():
+        URL = "https://reporeapers.github.io/static/downloads/dataset.csv.gz"
+        print(f"Downloading {URL}...")
+        try:
+            with requests.get(URL, stream=True) as response:
+                with open(dataset_gzip, "wb") as f:
+                    for chunk in response.raw.stream(1024, decode_content=False):
+                        if chunk:
+                            f.write(chunk)
+        except Exception as e:
+            print(e)
+
+    else:
+        print("GZip file already exists. Skipping download.")
+
+    dataset = "reporeaper.csv"
+    if not Path(dataset).exists():
+        print("Unzipping...")
+        df = pd.read_csv(dataset_gzip, compression="gzip", header=0, sep=",")
+        df.to_csv(dataset, index=False)
+    else:
+        print("CSV file already exists. Skipping unzipping.")
+        df = pd.read_csv(dataset, header=0, sep=",")
+
+    df.drop(df.index[df["stars"] == "None"], inplace=True)
+    df["stars"] = df["stars"].astype(int)
+    slugs = df.query("stars > 1")["repository"]
+    print(f"Total number of repositories with more than 1 stars: {len(slugs)}")
+    return [slug for slug in slugs]

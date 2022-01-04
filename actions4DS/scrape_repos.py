@@ -1,8 +1,10 @@
+import calendar
+import time
+
 from github import Github
 from github.GithubException import UnknownObjectException
-from tqdm import tqdm
-
 from models import GitHubSlug
+from tqdm import tqdm
 
 
 class GitHubScraper:
@@ -18,7 +20,22 @@ class GitHubScraper:
             f"Total workflows found = {self.scraping_stats['total_number_of_workflows']}"
         )
 
-    def scrape_repos(self, slugs: list[GitHubSlug]) -> None:
+    def _check_rate_limit(self, g: Github):
+        """Check the rate limit of the Github API.
+
+        Args:
+            g (Github): the Github API object.
+        """
+        core_rate_limit = g.get_rate_limit().core
+        if core_rate_limit.remaining <= 5:
+            print("Rate limit reached...")
+            reset_timestamp = calendar.timegm(core_rate_limit.reset.timetuple())
+            # add 5 seconds to be sure the rate limit has been reset)
+            sleep_time = reset_timestamp - calendar.timegm(time.gmtime()) + 5
+            print(f"Sleeping for {sleep_time} seconds...")
+            time.sleep(sleep_time)
+
+    def scrape_repos(self, slugs: "list[GitHubSlug]") -> None:
         """Scrape GitHub repos for GitHub Actions workflows.
 
         Args:
@@ -29,6 +46,7 @@ class GitHubScraper:
         pbar = tqdm(slugs)
         for slug in pbar:
             try:
+                self._check_rate_limit(self.github)
                 repo = self.github.get_repo(str(slug))
                 contents = repo.get_contents(".github/workflows")
 

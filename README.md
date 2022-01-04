@@ -4,8 +4,22 @@ This is the replication package of the CAIN 2022 paper on the use of GitHub Acti
 
 ## Setup
 
-To run the scripts contained in this repository, you first need to create a `.env` file in the project root directory and populate it with the following entries.
+Before running the scripts contained in this repository, you first need to create a `.env` file in the project root directory and populate it with the following entries.
 
 ```shell
 GITHUB_PERSONAL_ACCESS_TOKEN=<your-personal-GitHub-access-token>
+```
+
+To install the dependencies, run:
+```shell
+poetry install
+```
+
+## Execution
+
+Open a poetry shell and then run the scripts as follows:
+
+```shell
+poetry shell
+python main.py
 ```
