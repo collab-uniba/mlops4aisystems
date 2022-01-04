@@ -80,4 +80,4 @@ def get_repos_from_reporeaper() -> GitHubSlug:
     df["stars"] = df["stars"].astype(int)
     slugs = df.query("stars > 1")["repository"]
     print(f"Total number of repositories with more than 1 stars: {len(slugs)}")
-    return [slug for slug in slugs]
+    return [GitHubSlug(slug) for slug in slugs]
