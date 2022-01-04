@@ -8,4 +8,5 @@ To run the scripts contained in this repository, you first need to create a `.en
 
 ```shell
 GITHUB_PERSONAL_ACCESS_TOKEN=<your-personal-GitHub-access-token>
+DATA_DIR=<data/directory/path>
 ```

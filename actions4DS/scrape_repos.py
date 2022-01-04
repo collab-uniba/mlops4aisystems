@@ -1,13 +1,31 @@
+from pathlib import Path
+
 from github import Github
 from github.GithubException import UnknownObjectException
 from tqdm import tqdm
+from ruamel.yaml import YAML
 
 from models import GitHubSlug
 
 
 class GitHubScraper:
-    def __init__(self, github_personal_access_token: str) -> None:
+    def __init__(self, github_personal_access_token: str, data_dir: Path) -> None:
+
+        # Set up the GitHub instance
         self.github = Github(github_personal_access_token)
+
+        # Set up the yaml parser
+        self.yaml_parser = YAML()
+
+        # Set up the data directory
+        if not data_dir.exists:
+            raise ValueError("The specified data directory does not exist.")
+        if not data_dir.is_dir:
+            raise ValueError("The specified data directory is not a folder.")
+        else:
+            self.data_dir = data_dir
+
+        # Initialize scraping stats
         self.scraping_stats = {
             "repos_with_at_least_one_workflow": 0,
             "total_number_of_workflows": 0,
@@ -30,11 +48,23 @@ class GitHubScraper:
         for slug in pbar:
             try:
                 repo = self.github.get_repo(str(slug))
-                contents = repo.get_contents(".github/workflows")
+                workflows = repo.get_contents(".github/workflows")
+
+                local_repo_path = Path(self.data_dir) / slug.repo_owner / slug.repo_name
+                local_repo_path.mkdir(parents=True)
+
+                for workflow in workflows:
+
+                    workflow_filename = Path(workflow.path).name
+                    local_workflow_path = local_repo_path / workflow_filename
+
+                    yaml_string = workflow.decoded_content.decode("utf8")
+                    yaml_object = self.yaml_parser.load(yaml_string)
+                    self.yaml_parser.dump(yaml_object, local_workflow_path)
 
                 # Update scraping stats
                 self.scraping_stats["repos_with_at_least_one_workflow"] += 1
-                self.scraping_stats["total_number_of_workflows"] += len(contents)
+                self.scraping_stats["total_number_of_workflows"] += len(workflows)
 
             except UnknownObjectException:
                 self._update_pbar_description(pbar)

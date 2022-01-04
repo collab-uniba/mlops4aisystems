@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -8,6 +9,7 @@ from scrape_repos import GitHubScraper
 # Load environment variables from .env file
 load_dotenv()
 GITHUB_PERSONAL_ACCESS_TOKEN = os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
+DATA_DIR = Path(os.getenv("DATA_DIR"))
 
 if __name__ == "__main__":
 
@@ -15,5 +17,5 @@ if __name__ == "__main__":
     slugs = get_repos_from_boa_dataset()
 
     # STEP 2: scrape repos to collect workflows
-    github_scraper = GitHubScraper(GITHUB_PERSONAL_ACCESS_TOKEN)
+    github_scraper = GitHubScraper(GITHUB_PERSONAL_ACCESS_TOKEN, DATA_DIR)
     github_scraper.scrape_repos(slugs)
