@@ -3,6 +3,9 @@
 # pyenv virtualenv (local environment)
 .python-version
 
+# data
+data/
+
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,jupyternotebooks,pycharm,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,python,jupyternotebooks,pycharm,macos
