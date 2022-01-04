@@ -2,6 +2,7 @@
 Generate a list of GitHub repositories containing data science projects.
 """
 
+import logging
 import re
 from pathlib import Path
 
@@ -35,25 +36,36 @@ def get_repos_from_boa_dataset() -> GitHubSlug:
             "Boa Meets Python" dataset [1].
     """
 
-    # URL to the raw `info.txt` file from https://www.github.com/boalang/MSR19-DataShowcase
-    URL = "https://raw.githubusercontent.com/boalang/MSR19-DataShowcase/master/info.txt"
+    LOGGING_CONTEXT = "[Getting slugs from Boa] "
 
+    URL = "https://raw.githubusercontent.com/boalang/MSR19-DataShowcase/master/info.txt"
+    logging.info(LOGGING_CONTEXT + f"Downloading {URL}...")
     r = requests.get(URL)
+    logging.info(LOGGING_CONTEXT + "Download completed.")
+
     lines = r.text.splitlines()
     regex = re.compile("^lib\[(.*)\] = (.*)$")
-    return [
+    slugs = [
         GitHubSlug(match.group(1)) for line in lines if (match := regex.match(line))
     ]
+
+    logging.info(
+        LOGGING_CONTEXT + f"Slug extraction completed, total slugs: {len(slugs)}."
+    )
+
+    return slugs
 
 
 def get_repos_from_reporeaper(data_dir: Path) -> GitHubSlug:
     """Get the list of repo slugs from the [RepoReaper](https://reporeapers.github.io)\
          dataset."""
 
+    LOGGING_CONTEXT = "[Getting slugs from RepoReaper] "
+
     dataset_gzip = data_dir / "dataset.csv.gz"
     if not dataset_gzip.exists():
         URL = "https://reporeapers.github.io/static/downloads/dataset.csv.gz"
-        print(f"Downloading {URL}...")
+        logging.info(LOGGING_CONTEXT + f"Downloading '{URL}'...")
         try:
             with requests.get(URL, stream=True) as response:
                 with open(dataset_gzip, "wb") as f:
@@ -61,22 +73,25 @@ def get_repos_from_reporeaper(data_dir: Path) -> GitHubSlug:
                         if chunk:
                             f.write(chunk)
         except Exception as e:
-            print(e)
+            logging.error(e)
 
     else:
-        print("GZip file already exists. Skipping download.")
+        logging.info(LOGGING_CONTEXT + "GZip file already exists. Skipping download.")
 
     dataset = data_dir / "reporeaper.csv"
     if not dataset.exists():
-        print("Unzipping...")
+        logging.info(LOGGING_CONTEXT + f"Unzipping '{dataset_gzip}' to '{dataset}'...")
         df = pd.read_csv(dataset_gzip, compression="gzip", header=0, sep=",")
         df.to_csv(dataset, index=False)
     else:
-        print("CSV file already exists. Skipping unzipping.")
+        logging.info(LOGGING_CONTEXT + "CSV file already exists. Skipping unzipping.")
         df = pd.read_csv(dataset, header=0, sep=",", dtype={"stars": object})
 
     df.drop(df.index[df["stars"] == "None"], inplace=True)
     df["stars"] = df["stars"].astype(int)
     slugs = df.query("stars > 1")["repository"]
-    print(f"Total number of repositories with more than 1 stars: {len(slugs)}")
+    logging.info(
+        LOGGING_CONTEXT
+        + f"Total number of repositories with more than 1 stars: {len(slugs)}."
+    )
     return [GitHubSlug(slug) for slug in slugs]

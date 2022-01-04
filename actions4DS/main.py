@@ -1,17 +1,6 @@
-import configparser
-import json
-import os
-from pathlib import Path
-
 from get_repo_list import get_repos_from_boa_dataset, get_repos_from_reporeaper
 from scrape_repos import GitHubScraper
-
-# Load configuration from config.ini file
-config = configparser.ConfigParser()
-config.read(Path("config.ini"))
-
-DATA_DIR = Path(config["PATHS"]["DATA_DIR"])
-TOKEN_LIST = json.loads(config["GITHUB"]["TOKEN_LIST"])
+from config import TOKEN_LIST, DATA_DIR
 
 if __name__ == "__main__":
 

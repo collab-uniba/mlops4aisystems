@@ -3,7 +3,8 @@
 # pyenv virtualenv (local environment)
 .python-version
 
-# Data dir
+# Logs and data dirs
+logs/
 data/
 
 # Config file
