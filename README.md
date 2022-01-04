@@ -12,6 +12,7 @@ DATA_DIR=<data/directory/path>
 ```
 
 To install the dependencies, run:
+
 ```shell
 poetry install
 ```
@@ -20,7 +21,17 @@ poetry install
 
 Open a poetry shell and then run the scripts as follows:
 
-```shell
-poetry shell
-python main.py
+```ini
+[GITHUB]
+TOKEN_LIST = [
+        "faketoken1",
+        "faketoken2",
+        "faketoken3",
+        "faketoken4",
+        "faketoken5",
+    ]
+
+[PATHS]
+DATA_DIR = path/to/data/dir
+LOGS_DIR = path/to/logs/dir
 ```

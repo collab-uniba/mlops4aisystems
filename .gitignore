@@ -3,9 +3,11 @@
 # pyenv virtualenv (local environment)
 .python-version
 
-# data
+# Data dir
 data/
 
+# Config file
+config.ini
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,jupyternotebooks,pycharm,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,python,jupyternotebooks,pycharm,macos
@@ -312,5 +314,3 @@ cython_debug/
 !.vscode/*.code-snippets
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,jupyternotebooks,pycharm,macos
-dataset.csv.gz
-reporeaper.csv

@@ -11,10 +11,10 @@ from models import GitHubSlug
 
 
 class GitHubScraper:
-    def __init__(self, github_personal_access_token: str, data_dir: Path) -> None:
+    def __init__(self, token_list: list[str], data_dir: Path) -> None:
 
         # Set up the GitHub instance
-        self.github = Github(github_personal_access_token)
+        self.github = Github(token_list[0])
 
         # Set up the yaml parser
         self.yaml_parser = YAML()

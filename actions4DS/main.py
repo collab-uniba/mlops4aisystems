@@ -1,14 +1,17 @@
+import configparser
+import json
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
 from get_repo_list import get_repos_from_boa_dataset, get_repos_from_reporeaper
 from scrape_repos import GitHubScraper
 
-# Load environment variables from .env file
-load_dotenv()
-GITHUB_PERSONAL_ACCESS_TOKEN = os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
-DATA_DIR = Path(os.getenv("DATA_DIR"))
+# Load configuration from config.ini file
+config = configparser.ConfigParser()
+config.read(Path("config.ini"))
+
+DATA_DIR = Path(config["PATHS"]["DATA_DIR"])
+TOKEN_LIST = json.loads(config["GITHUB"]["TOKEN_LIST"])
 
 if __name__ == "__main__":
 
@@ -18,5 +21,5 @@ if __name__ == "__main__":
     slugs = boa_slugs + reaper_slugs
 
     # STEP 2: scrape repos to collect workflows
-    github_scraper = GitHubScraper(GITHUB_PERSONAL_ACCESS_TOKEN, DATA_DIR)
+    github_scraper = GitHubScraper(TOKEN_LIST, DATA_DIR)
     github_scraper.scrape_repos(slugs)
