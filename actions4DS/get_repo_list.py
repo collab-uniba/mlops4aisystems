@@ -12,7 +12,8 @@ from models import GitHubSlug
 
 
 # Method 1
-# Get repositories from the dataset: “Boa Meets Python: A Boa Dataset of Data Science Software in Python Language”
+# Get repositories from the dataset: “Boa Meets Python: A Boa Dataset of
+# Data Science Software in Python Language”
 def get_repos_from_boa_dataset() -> GitHubSlug:
     """Get the list of repo slugs from the "Boa Meets Python" dataset.
 
@@ -44,8 +45,8 @@ def get_repos_from_boa_dataset() -> GitHubSlug:
     logging.info(LOGGING_CONTEXT + "Download completed.")
 
     lines = r.text.splitlines()
-    regex = re.compile("^lib\[(.*)\] = (.*)$")
-    slugs = [
+    regex = re.compile(r"^lib\[(.*)\] = (.*)$")
+    return [
         GitHubSlug(match.group(1)) for line in lines if (match := regex.match(line))
     ]
 
@@ -57,8 +58,9 @@ def get_repos_from_boa_dataset() -> GitHubSlug:
 
 
 def get_repos_from_reporeaper(data_dir: Path) -> GitHubSlug:
-    """Get the list of repo slugs from the [RepoReaper](https://reporeapers.github.io)\
-         dataset."""
+    """Get the list of repo slugs from the
+    [RepoReaper](https://reporeapers.github.io) dataset.
+    """
 
     LOGGING_CONTEXT = "[Getting slugs from RepoReaper] "
 
@@ -78,7 +80,7 @@ def get_repos_from_reporeaper(data_dir: Path) -> GitHubSlug:
     else:
         logging.info(LOGGING_CONTEXT + "GZip file already exists. Skipping download.")
 
-    dataset = data_dir / "reporeaper.csv"
+    dataset = Path(data_dir, "reporeaper.csv")
     if not dataset.exists():
         logging.info(LOGGING_CONTEXT + f"Unzipping '{dataset_gzip}' to '{dataset}'...")
         df = pd.read_csv(dataset_gzip, compression="gzip", header=0, sep=",")

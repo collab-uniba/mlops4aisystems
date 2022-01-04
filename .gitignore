@@ -10,6 +10,8 @@ data/
 # Config file
 config.ini
 
+*.stamp
+
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,jupyternotebooks,pycharm,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,python,jupyternotebooks,pycharm,macos
 

@@ -1,13 +1,13 @@
 import calendar
 import time
 from pathlib import Path
+from typing import List
 
 from github import Github
 from github.GithubException import UnknownObjectException
+from models import GitHubSlug
 from ruamel.yaml import YAML
 from tqdm import tqdm
-
-from models import GitHubSlug
 
 
 class GitHubScraper:
@@ -50,7 +50,7 @@ class GitHubScraper:
             print(f"Sleeping for {sleep_time} seconds...")
             time.sleep(sleep_time)
 
-    def scrape_repos(self, slugs: "list[GitHubSlug]") -> None:
+    def scrape_repos(self, slugs: List[GitHubSlug]) -> None:
         """Scrape GitHub repos for GitHub Actions workflows.
 
         Args:
@@ -92,7 +92,7 @@ class GitHubScraper:
         print(self)
 
     def __str__(self) -> str:
-        summary = f"\nSCRAPING SUMMARY\n"
+        summary = "\nSCRAPING SUMMARY\n"
         summary += "  - Repositories with at least one workflow = "
         summary += f"{self.scraping_stats['repos_with_at_least_one_workflow'] };\n"
         summary += "  - Total number of scraped workflows = "
