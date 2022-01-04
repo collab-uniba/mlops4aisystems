@@ -73,7 +73,7 @@ def get_repos_from_reporeaper(data_dir: Path) -> GitHubSlug:
         df.to_csv(dataset, index=False)
     else:
         print("CSV file already exists. Skipping unzipping.")
-        df = pd.read_csv(dataset, header=0, sep=",")
+        df = pd.read_csv(dataset, header=0, sep=",", dtype={"stars": object})
 
     df.drop(df.index[df["stars"] == "None"], inplace=True)
     df["stars"] = df["stars"].astype(int)
