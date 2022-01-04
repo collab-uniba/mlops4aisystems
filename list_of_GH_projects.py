@@ -1,19 +1,17 @@
-import requests
-import re
 import os
+from dotenv import load_dotenv
 from tqdm import tqdm
 from github import Github
 from github.GithubException import UnknownObjectException
+from get_repo_list import get_repos_from_boa_dataset
 
-# Download `info.txt` form the paper's GitHub repository (boalang/MSR19-DataShowcase)
-URL = "https://raw.githubusercontent.com/boalang/MSR19-DataShowcase/master/info.txt"
-r = requests.get(URL)
-lines = r.text.splitlines()
-regex = re.compile("^lib\[(.*)\] = (.*)$")
-slugs = [match.group(1) for line in lines if (match := regex.match(line))]
+# Load environment variables from .env file
+load_dotenv()
+GITHUB_PERSONAL_ACCESS_TOKEN = os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
 
-personal_access_token = os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
-g = Github(personal_access_token)
+slugs = get_repos_from_boa_dataset()
+
+g = Github(GITHUB_PERSONAL_ACCESS_TOKEN)
 
 repos_with_workflow = 0
 total_number_of_workflows = 0
