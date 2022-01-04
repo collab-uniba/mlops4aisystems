@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pandas as pd
 import requests
-from main import DATA_DIR
 from models import GitHubSlug
 
 
@@ -43,17 +42,17 @@ def get_repos_from_boa_dataset() -> GitHubSlug:
     r = requests.get(URL)
     lines = r.text.splitlines()
     regex = re.compile(r"^lib\[(.*)\] = (.*)$")
-    return (
+    return [
         GitHubSlug(match.group(1)) for line in lines if (match := regex.match(line))
-    )
+    ]
 
 
-def get_repos_from_reporeaper() -> GitHubSlug:
+def get_repos_from_reporeaper(data_dir: str) -> GitHubSlug:
     """Get the list of repo slugs from the
     [RepoReaper](https://reporeapers.github.io) dataset.
     """
 
-    dataset_gzip = Path(DATA_DIR, "dataset.csv.gz")
+    dataset_gzip = Path(data_dir, "dataset.csv.gz")
     if not dataset_gzip.exists():
         URL = "https://reporeapers.github.io/static/downloads/dataset.csv.gz"
         print(f"Downloading {URL}...")
@@ -69,7 +68,7 @@ def get_repos_from_reporeaper() -> GitHubSlug:
     else:
         print("GZip file already exists. Skipping download.")
 
-    dataset = Path(DATA_DIR, "reporeaper.csv")
+    dataset = Path(data_dir, "reporeaper.csv")
     if not dataset.exists():
         print("Unzipping...")
         df = pd.read_csv(dataset_gzip, compression="gzip", header=0, sep=",")
@@ -82,4 +81,4 @@ def get_repos_from_reporeaper() -> GitHubSlug:
     df["stars"] = df["stars"].astype(int)
     slugs = df.query("stars > 1")["repository"]
     print(f"Total number of repositories with more than 1 stars: {len(slugs)}")
-    return (GitHubSlug(slug) for slug in slugs)
+    return [GitHubSlug(slug) for slug in slugs]
