@@ -9,12 +9,13 @@ from pathlib import Path
 import pandas as pd
 import requests
 from models import GitHubSlug
+from scrape_repos import DataScienceScraper
 
 
 # Method 1
 # Get repositories from the dataset: “Boa Meets Python: A Boa Dataset of
 # Data Science Software in Python Language”
-def get_repos_from_boa_dataset() -> GitHubSlug:
+def get_repos_from_boa_dataset() -> list[GitHubSlug]:
     """Get the list of repo slugs from the "Boa Meets Python" dataset.
 
     In [1], Biswas et al. present a dataset of 1,558 mature data science projects
@@ -55,14 +56,43 @@ def get_repos_from_boa_dataset() -> GitHubSlug:
     return slugs
 
 
-def get_repos_from_reporeaper(data_dir: Path) -> GitHubSlug:
+def _filter_datascience_repos(
+    all_slugs: list[GitHubSlug],
+    data_dir: Path,
+    token_list: list[str],
+) -> list[GitHubSlug]:
+    """Filter the list of GitHub slugs to only include data science repositories.
+
+    Args:
+        token_list (list[str]): list of GitHub API tokens
+        all_slugs (list[GitHubSlug]): list of GitHub slugs
+
+    Returns:
+        list : the list of GitHub slugs for data science repositories
+    """
+    ds_scraper = DataScienceScraper(token_list, data_dir)
+    slugs = ds_scraper.scrape_repos(all_slugs)
+    return slugs
+
+
+def get_repos_from_reporeaper(
+    token_list: list[str], data_dir: Path
+) -> list[GitHubSlug]:
     """Get the list of repo slugs from the
     [RepoReaper](https://reporeapers.github.io) dataset.
+
+    Args:
+        token_list (list[str]): list of GitHub tokens
+        data_dir (Path): path to the data directory
+
+    Returns:
+        list: the list of data-science GitHub slugs for the projects from
+              the "RepoReaper" dataset.
     """
 
     LOGGING_CONTEXT = "[Getting slugs from RepoReaper] "
 
-    dataset_gzip = data_dir / "dataset.csv.gz"
+    dataset_gzip = Path(data_dir, "dataset.csv.gz")
     if not dataset_gzip.exists():
         URL = "https://reporeapers.github.io/static/downloads/dataset.csv.gz"
         logging.info(LOGGING_CONTEXT + f"Downloading '{URL}'...")
@@ -94,4 +124,11 @@ def get_repos_from_reporeaper(data_dir: Path) -> GitHubSlug:
         LOGGING_CONTEXT
         + f"Total number of repositories with more than 1 stars: {len(slugs)}."
     )
+
+    logging.info(LOGGING_CONTEXT + "Filtering data science repositories...")
+    slugs = _filter_datascience_repos(slugs, data_dir, token_list)
+    logging.info(
+        LOGGING_CONTEXT + f"Total number of data science repositories: {len(slugs)}."
+    )
+
     return [GitHubSlug(slug) for slug in slugs]
