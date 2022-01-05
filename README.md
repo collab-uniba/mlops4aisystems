@@ -21,7 +21,7 @@ DATA_DIR = path/to/data/dir
 LOGS_DIR = path/to/logs/dir
 ```
 
-To install the dependencies, run:
+To install the dependencies, open a Poetry shell session and run:
 
 ```shell
 poetry shell
@@ -30,7 +30,7 @@ make install
 
 ## Execution
 
-Open a poetry shell and then run the scripts as follows:
+Within an active Poetry shell session, run the scripts as follows:
 
 ```shell
 python actions4DS/main.py
