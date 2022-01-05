@@ -24,6 +24,7 @@ LOGS_DIR = path/to/logs/dir
 To install the dependencies, run:
 
 ```shell
+poetry shell
 make install
 ```
 
@@ -32,6 +33,5 @@ make install
 Open a poetry shell and then run the scripts as follows:
 
 ```shell
-poetry shell
 python actions4DS/main.py
 ```
