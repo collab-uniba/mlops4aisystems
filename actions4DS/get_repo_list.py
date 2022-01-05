@@ -46,14 +46,12 @@ def get_repos_from_boa_dataset() -> GitHubSlug:
 
     lines = r.text.splitlines()
     regex = re.compile(r"^lib\[(.*)\] = (.*)$")
-    return [
+    slugs = [
         GitHubSlug(match.group(1)) for line in lines if (match := regex.match(line))
     ]
-
     logging.info(
         LOGGING_CONTEXT + f"Slug extraction completed, total slugs: {len(slugs)}."
     )
-
     return slugs
 
 
