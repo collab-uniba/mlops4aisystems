@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 
 class GitHubScraper:
-    def __init__(self, token_list: list[str], data_dir: Path) -> None:
+    def __init__(self, token_list: List[str], data_dir: Path) -> None:
 
         # Set up the GitHub instance
         self.github = Github(token_list[0])
