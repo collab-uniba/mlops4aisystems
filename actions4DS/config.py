@@ -3,9 +3,11 @@
 import configparser
 import json
 import logging
-import sys
 from datetime import datetime
 from pathlib import Path
+
+import pretty_errors
+from rich.logging import RichHandler
 
 # Load configuration from config.ini file
 config = configparser.ConfigParser()
@@ -33,9 +35,22 @@ logging.basicConfig(
 )
 
 # Mirror logging to stdout
-console_handler = logging.StreamHandler(sys.stdout)
+console_handler = RichHandler(markup=True)
 logging.getLogger().addHandler(console_handler)
 
+# Configure error formatter
+pretty_errors.configure(
+    separator_character="*",
+    filename_display=pretty_errors.FILENAME_EXTENDED,
+    line_number_first=True,
+    display_link=True,
+    lines_before=5,
+    lines_after=2,
+    line_color=pretty_errors.RED + "> " + pretty_errors.default_config.line_color,
+    code_color="  " + pretty_errors.default_config.line_color,
+    truncate_code=True,
+    display_locals=True,
+)
 
 # ------------ #
 # DATA STORAGE #
