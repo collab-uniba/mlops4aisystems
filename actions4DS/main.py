@@ -1,6 +1,6 @@
+from config import DATA_DIR, TOKEN_LIST
 from get_repo_list import get_repos_from_boa_dataset, get_repos_from_reporeaper
 from scrape_repos import GitHubScraper
-from config import TOKEN_LIST, DATA_DIR
 
 if __name__ == "__main__":
 
