@@ -9,7 +9,11 @@ from pathlib import Path
 
 # Load configuration from config.ini file
 config = configparser.ConfigParser()
-config.read(Path("config.ini"))
+config_ini = Path("config.ini")
+if not config_ini.exists():
+    raise ValueError("The config.ini file does not exist.")
+else:
+    config.read(config_ini)
 
 # ------- #
 # LOGGING #
