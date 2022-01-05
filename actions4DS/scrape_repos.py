@@ -65,7 +65,7 @@ class GitHubScraper:
                 repo = self.github.get_repo(str(slug))
                 workflows = repo.get_contents(".github/workflows")
 
-                local_repo_path = Path(self.data_dir) / slug.repo_owner / slug.repo_name
+                local_repo_path = Path(self.data_dir, slug.repo_owner, slug.repo_name)
 
                 if not local_repo_path.exists():
 
