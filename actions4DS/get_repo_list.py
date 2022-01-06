@@ -128,9 +128,6 @@ def get_repos_from_reporeaper(
 
     logging.info(LOGGING_CONTEXT + "Filtering data science repositories...")
 
-    # TODO: remove
-    slugs = ["antirez/redis", "mental/bloopsaphone"]
-
     slugs = _filter_datascience_repos(slugs, token_list, dumps_dir, keywords)
     logging.info(
         LOGGING_CONTEXT + f"Total number of data science repositories: {len(slugs)}."
