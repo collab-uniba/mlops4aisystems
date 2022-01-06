@@ -1,8 +1,4 @@
 {
-  "default_paths": {
-    "DATA_DIR": "data/",
-    "LOGS_DIR": "logs/"
-  },
   "keywords": [
     "machine learn",
     "machine-learn",

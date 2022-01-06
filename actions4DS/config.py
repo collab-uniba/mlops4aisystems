@@ -9,13 +9,13 @@ from pathlib import Path
 import pretty_errors
 from rich.logging import RichHandler
 
-# Load secrets from `secrets.ini`
+# Load environment variables from `env.ini`
 config = configparser.ConfigParser()
-secrets_file = Path("secrets.ini")
-if not secrets_file.exists():
-    raise ValueError("The secrets.ini file does not exist.")
+env_file = Path("env.ini")
+if not env_file.exists():
+    raise ValueError("The env.ini file does not exist.")
 else:
-    config.read(secrets_file)
+    config.read(env_file)
 
 # Load settings from `settings.json`
 settings_file = Path("settings.json")
@@ -30,7 +30,7 @@ else:
 # ------- #
 
 # Ensure the logs directory exists
-LOGS_DIR = Path(settings["default_paths"]["LOGS_DIR"])
+LOGS_DIR = Path(config["PATHS"]["LOGS_DIR"])
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Logging configuration
@@ -65,7 +65,7 @@ pretty_errors.configure(
 # ------------ #
 
 # Ensure the data directory exists
-DATA_DIR = Path(settings["default_paths"]["DATA_DIR"])
+DATA_DIR = Path(config["PATHS"]["DATA_DIR"])
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 

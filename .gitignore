@@ -7,8 +7,8 @@
 logs/
 data/
 
-# Config file
-secrets.ini
+# Env file
+env.ini
 
 *.stamp
 
