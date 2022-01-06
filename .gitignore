@@ -3,9 +3,10 @@
 # pyenv virtualenv (local environment)
 .python-version
 
-# Logs and data dirs
+# Directories for logs, dumps, and data
 logs/
 data/
+dumps/
 
 # Env file
 env.ini

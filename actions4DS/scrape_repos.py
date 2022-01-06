@@ -1,4 +1,5 @@
 import calendar
+import json
 import logging
 import re
 import time
@@ -15,16 +16,22 @@ from ruamel.yaml import YAML
 class GitHubScraper:
     """Base class for scraping GitHub repositories."""
 
-    def __init__(self, token_list: list[str]) -> None:
+    def __init__(self, token_list: list[str], dumps_dir: Path) -> None:
 
         # Set up the GitHub instance
         self.github = Github(token_list[0])
 
+        # Set up the dumps directory
+        self.dumps_dir: Path = dumps_dir
+
         # Initialize scraping stats
         self.scraping_stats: dict = {
-            "start_datetime": datetime.now(),
+            "start_datetime": str(datetime.now()),
             "end_datetime": None,
         }
+
+        # Initialize list of selected slugs
+        self.selected_slugs: list[GitHubSlug] = []
 
     def _check_rate_limit(self):
         """Check the rate limit of the Github API."""
@@ -37,6 +44,30 @@ class GitHubScraper:
             print(f"Sleeping for {sleep_time} seconds...")
             time.sleep(sleep_time)
 
+    def _dump_scraping_results(self) -> None:
+        """Dump scraping results to a JSON file.
+
+        The output file will contain:
+
+        - the scraping stats
+        - the selected list of slugs
+
+        The output file will be placed in a `DATA_DIR` subfolder called `dumps`.
+        """
+
+        # Define dump filename upon the name of the class that is dumped
+        dump_path = self.dumps_dir / (self.__class__.__name__ + "_dump.json")
+
+        # Prepare the dictionary to dump
+        dump: dict = self.scraping_stats
+        slug_list = [str(slug) for slug in self.selected_slugs]
+        slug_dict = {"selected_slugs": slug_list}
+        dump.update(slug_dict)
+
+        # Write the dump to disk as a JSON file
+        with open(dump_path, "w") as dump_file:
+            json.dump(dump, dump_file, indent=4)
+
 
 class DataScienceScraper(GitHubScraper):
     """Scraper for data science repositories.
@@ -44,8 +75,10 @@ class DataScienceScraper(GitHubScraper):
     Extends: GitHubScraper
     """
 
-    def __init__(self, token_list: list[str], keywords: list[str]) -> None:
-        super().__init__(token_list)
+    def __init__(
+        self, token_list: list[str], dumps_dir: Path, keywords: list[str]
+    ) -> None:
+        super().__init__(token_list, dumps_dir)
         self.KEYWORDS = keywords
 
         # Initialize scraping stats
@@ -60,7 +93,7 @@ class DataScienceScraper(GitHubScraper):
 
     def __str__(self) -> str:
         summary = "SCRAPING SUMMARY\n"
-        summary += "  - Repositories with at least one matching keyword (selected) = "
+        summary += "  - Repositories with at least one matching keyword = "
         summary += f"{self.scraping_stats['selected_repos'] };\n"
         summary += "  - Repositories with matching keyword(s) in topics = "
         summary += f"{self.scraping_stats['repos_with_keywords_in_topics'] };\n"
@@ -82,7 +115,7 @@ class DataScienceScraper(GitHubScraper):
             list[GitHubSlug]: list of GitHub slugs with data science keywords
         """
         LOGGING_CONTEXT = "[Filtering slugs from RepoReaper] "
-        ds_slugs = []
+        self.selected_slugs = []
 
         with Progress(
             "[progress.description]{task.description}",
@@ -117,7 +150,7 @@ class DataScienceScraper(GitHubScraper):
                             keyword, description, re.IGNORECASE
                         )
                         if keywords_in_topics or keywords_in_description:
-                            ds_slugs.append(slug)
+                            self.selected_slugs.append(slug)
                             progress.console.log(
                                 f':thumbs_up: Data science repo found: "{slug}".',
                             )
@@ -145,10 +178,11 @@ class DataScienceScraper(GitHubScraper):
                         selected=self.scraping_stats["selected_repos"],
                     )
 
-        self.scraping_stats["end_datetime"] = datetime.now()
+        self.scraping_stats["end_datetime"] = str(datetime.now())
+        self._dump_scraping_results()
         logging.info(LOGGING_CONTEXT + "Filtering completed.")
         logging.info(LOGGING_CONTEXT + str(self))
-        return ds_slugs
+        return self.selected_slugs
 
 
 class WorkflowScraper(GitHubScraper):
@@ -157,8 +191,8 @@ class WorkflowScraper(GitHubScraper):
     Extends: GitHubScraper
     """
 
-    def __init__(self, token_list: list[str], data_dir: Path) -> None:
-        super().__init__(token_list)
+    def __init__(self, token_list: list[str], dumps_dir: Path, data_dir: Path) -> None:
+        super().__init__(token_list, dumps_dir)
 
         # Initialize scraping stats
         self.scraping_stats.update(
@@ -207,7 +241,7 @@ class WorkflowScraper(GitHubScraper):
         LOGGING_CONTEXT = "[WorkflowScraper] "
         logging.info(LOGGING_CONTEXT + "Downloading workflows from selected slugs...")
 
-        repos_with_workflows = []
+        self.selected_slugs = []
 
         with Progress(
             "[progress.description]{task.description}",
@@ -240,7 +274,7 @@ class WorkflowScraper(GitHubScraper):
                         workflows = repo.get_contents(".github/workflows")
 
                         # Update scraping stats
-                        repos_with_workflows.append(slug)
+                        self.selected_slugs.append(slug)
                         self.scraping_stats["repos_with_at_least_one_workflow"] += 1
                         self.scraping_stats["total_number_of_workflows"] += len(
                             workflows
@@ -314,7 +348,8 @@ class WorkflowScraper(GitHubScraper):
                         ],
                     )
 
-        self.scraping_stats["end_datetime"] = datetime.now()
+        self.scraping_stats["end_datetime"] = str(datetime.now())
+        self._dump_scraping_results()
         logging.info(LOGGING_CONTEXT + "Download completed.")
         logging.info(LOGGING_CONTEXT + str(self))
-        return repos_with_workflows
+        return self.selected_slugs

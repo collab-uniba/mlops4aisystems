@@ -68,6 +68,10 @@ pretty_errors.configure(
 DATA_DIR = Path(config["PATHS"]["DATA_DIR"])
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
+# Ensure the dumps directory exists
+DUMPS_DIR = Path(config["PATHS"]["DUMPS_DIR"])
+DUMPS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 # ---------- #
 # GITHUB API #
