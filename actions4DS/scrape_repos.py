@@ -10,7 +10,6 @@ from github.GithubException import UnknownObjectException
 from models import GitHubSlug
 from rich.progress import BarColumn, Progress, TimeRemainingColumn
 from ruamel.yaml import YAML
-from tqdm import tqdm
 
 
 class GitHubScraper:
@@ -91,7 +90,7 @@ class DataScienceScraper(GitHubScraper):
         summary += "  - Repositories with matching keyword(s) in description = "
         summary += f"{self.scraping_stats['repos_with_keywords_in_description'] };\n"
         summary += "  - Repositories not found = "
-        summary += f"{self.scraping_stats['repos_not_found'] };\n"
+        summary += f"{self.scraping_stats['repos_not_found'] }\n"
 
         return summary
 
@@ -183,8 +182,11 @@ class WorkflowScraper(GitHubScraper):
 
         # Initialize scraping stats
         self.scraping_stats = {
+            "repos_not_found": 0,
             "repos_with_at_least_one_workflow": 0,
             "total_number_of_workflows": 0,
+            "total_number_of_valid_workflows": 0,  # Valid YAML file
+            "total_number_of_invalid_workflows": 0,  # Invalid YAML file
         }
 
         # Set up the yaml parser
@@ -198,11 +200,20 @@ class WorkflowScraper(GitHubScraper):
         else:
             self.data_dir = data_dir
 
-    def _update_pbar_description(self, pbar):
-        """Update the total number of workflows displayed in the progress bar."""
-        pbar.set_description(
-            f"Total workflows found = {self.scraping_stats['total_number_of_workflows']}"
-        )
+    def __str__(self) -> str:
+        summary = "\nSCRAPING SUMMARY\n"
+        summary += "  - Repositories with at least one workflow = "
+        summary += f"{self.scraping_stats['repos_with_at_least_one_workflow'] };\n"
+        summary += "  - Total number of workflows = "
+        summary += f"{self.scraping_stats['total_number_of_workflows'] };"
+        summary += "  - Total number of valid workflows (valid YAML) = "
+        summary += f"{self.scraping_stats['total_number_of_valid_workflows'] };"
+        summary += "  - Total number of invalid workflows (invalid YAML) = "
+        summary += f"{self.scraping_stats['total_number_of_invalid_workflows'] };"
+        summary += "  - Repositories not found = "
+        summary += f"{self.scraping_stats['repos_not_found'] }\n"
+
+        return summary
 
     def scrape_repos(self, slugs: set[GitHubSlug]) -> None:
         """Scrape GitHub repos for GitHub Actions workflows.
@@ -211,45 +222,115 @@ class WorkflowScraper(GitHubScraper):
             github (Github): main class of the PyGithub library
             slugs (set(GitHubSlug)): set of GitHub slugs
         """
+        LOGGING_CONTEXT = "[WorkflowScraper] "
+        logging.info(LOGGING_CONTEXT + "Downloading workflows from selected slugs...")
 
-        pbar = tqdm(slugs)
-        for slug in pbar:
-            try:
+        repos_with_workflows = []
+
+        with Progress(
+            "[progress.description]{task.description}",
+            BarColumn(),
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            "[progress.completed_ratio]{task.completed}/{task.total}",
+            "[progress.with_workflows][bright_black]\
+                W/ workflows: {task.fields[repos_with_workflows]}",
+            "[progress.tot_workflows][bright_black]\
+                Valid workflows: {task.fields[valid_workflows]}",
+            TimeRemainingColumn(),
+        ) as progress:
+
+            task = progress.add_task(
+                "Downloading workflows...",
+                total=len(slugs),
+                repos_with_workflows=0,
+                valid_workflows=0,
+            )
+
+            for slug in slugs:
+
+                # Check GitHub API rate limit: wait if needed
                 self._check_rate_limit()
-                repo = self.github.get_repo(str(slug))
-                workflows = repo.get_contents(".github/workflows")
 
-                local_repo_path = Path(self.data_dir, slug.repo_owner, slug.repo_name)
+                try:
+                    repo = self.github.get_repo(str(slug))
 
-                if not local_repo_path.exists():
+                    try:
+                        workflows = repo.get_contents(".github/workflows")
 
-                    local_repo_path.mkdir(parents=True)
+                        # Update scraping stats
+                        repos_with_workflows.append(slug)
+                        self.scraping_stats["repos_with_at_least_one_workflow"] += 1
+                        self.scraping_stats["total_number_of_workflows"] += len(
+                            workflows
+                        )
 
-                    for workflow in workflows:
+                        # Download workflows
+                        progress.console.log(
+                            f':down_arrow: Downloading workflows from "{slug}"...',
+                        )
+                        local_repo_path = Path(
+                            self.data_dir, slug.repo_owner, slug.repo_name
+                        )
+                        if not local_repo_path.exists():
+                            local_repo_path.mkdir(parents=True)
 
-                        workflow_filename = Path(workflow.path).name
-                        local_workflow_path = local_repo_path / workflow_filename
+                            for workflow in workflows:
 
-                        yaml_string = workflow.decoded_content.decode("utf8")
-                        yaml_object = self.yaml_parser.load(yaml_string)
-                        self.yaml_parser.dump(yaml_object, local_workflow_path)
+                                workflow_filename = Path(workflow.path).name
+                                local_workflow_path = (
+                                    local_repo_path / workflow_filename
+                                )
 
-                # Update scraping stats
-                self.scraping_stats["repos_with_at_least_one_workflow"] += 1
-                self.scraping_stats["total_number_of_workflows"] += len(workflows)
+                                try:
+                                    yaml_string = workflow.decoded_content.decode(
+                                        "utf8"
+                                    )
+                                    yaml_object = self.yaml_parser.load(yaml_string)
+                                    self.yaml_parser.dump(
+                                        yaml_object, local_workflow_path
+                                    )
+                                    self.scraping_stats[
+                                        "total_number_of_valid_workflows"
+                                    ] += 1
+                                except Exception as e:
+                                    self.scraping_stats[
+                                        "total_number_of_invalid_workflows"
+                                    ] += 1
+                                    progress.console.log(
+                                        f':cross_mark: Invalid YAML file: \
+                                            "{workflow_filename}".\
+                                                Exception: "{repr(e)}"',
+                                    )
 
-            except UnknownObjectException as uoe:
-                logging.error(f"UnknownObjectException: {uoe}")
-            finally:
-                self._update_pbar_description(pbar)
+                            progress.console.log(
+                                f':thumbs_up: Downloaded workflows from "{slug}".',
+                            )
+                        else:
+                            progress.console.log(
+                                "Target directory already exists. Download canceled.",
+                            )
 
-        print(self)
+                    except UnknownObjectException:
+                        progress.console.log(
+                            f'No workflows found in "{slug}". Skipping...',
+                        )
 
-    def __str__(self) -> str:
-        summary = "\nSCRAPING SUMMARY\n"
-        summary += "  - Repositories with at least one workflow = "
-        summary += f"{self.scraping_stats['repos_with_at_least_one_workflow'] };\n"
-        summary += "  - Total number of scraped workflows = "
-        summary += f"{self.scraping_stats['total_number_of_workflows']}."
+                except UnknownObjectException:
+                    self.scraping_stats["repos_not_found"] += 1
+                    progress.console.log(
+                        f':cross_mark: Repository not found: "{slug}".',
+                    )
+                finally:
+                    progress.update(
+                        task,
+                        advance=1,
+                        repos_with_workflows=self.scraping_stats[
+                            "repos_with_at_least_one_workflow"
+                        ],
+                        valid_workflows=self.scraping_stats[
+                            "total_number_of_valid_workflows"
+                        ],
+                    )
 
-        return summary
+        logging.info(LOGGING_CONTEXT + "Download completed.")
+        logging.info(LOGGING_CONTEXT + str(self))
