@@ -2,8 +2,8 @@ import calendar
 import logging
 import re
 import time
+from datetime import datetime
 from pathlib import Path
-from typing import Text
 
 from github import Github
 from github.GithubException import UnknownObjectException
@@ -19,6 +19,12 @@ class GitHubScraper:
 
         # Set up the GitHub instance
         self.github = Github(token_list[0])
+
+        # Initialize scraping stats
+        self.scraping_stats: dict = {
+            "start_datetime": datetime.now(),
+            "end_datetime": None,
+        }
 
     def _check_rate_limit(self):
         """Check the rate limit of the Github API."""
@@ -43,12 +49,14 @@ class DataScienceScraper(GitHubScraper):
         self.KEYWORDS = keywords
 
         # Initialize scraping stats
-        self.scraping_stats = {
-            "repos_not_found": 0,
-            "repos_with_keywords_in_topics": 0,
-            "repos_with_keywords_in_description": 0,
-            "selected_repos": 0,
-        }
+        self.scraping_stats.update(
+            {
+                "repos_not_found": 0,
+                "repos_with_keywords_in_topics": 0,
+                "repos_with_keywords_in_description": 0,
+                "selected_repos": 0,
+            }
+        )
 
     def __str__(self) -> str:
         summary = "SCRAPING SUMMARY\n"
@@ -73,6 +81,7 @@ class DataScienceScraper(GitHubScraper):
         Returns:
             list[GitHubSlug]: list of GitHub slugs with data science keywords
         """
+        LOGGING_CONTEXT = "[Filtering slugs from RepoReaper] "
         ds_slugs = []
 
         with Progress(
@@ -136,7 +145,9 @@ class DataScienceScraper(GitHubScraper):
                         selected=self.scraping_stats["selected_repos"],
                     )
 
-        logging.info("[Filtering slugs from RepoReaper] " + str(self))
+        self.scraping_stats["end_datetime"] = datetime.now()
+        logging.info(LOGGING_CONTEXT + "Filtering completed.")
+        logging.info(LOGGING_CONTEXT + str(self))
         return ds_slugs
 
 
@@ -150,13 +161,15 @@ class WorkflowScraper(GitHubScraper):
         super().__init__(token_list)
 
         # Initialize scraping stats
-        self.scraping_stats = {
-            "repos_not_found": 0,
-            "repos_with_at_least_one_workflow": 0,
-            "total_number_of_workflows": 0,
-            "total_number_of_valid_workflows": 0,  # Valid YAML file
-            "total_number_of_invalid_workflows": 0,  # Invalid YAML file
-        }
+        self.scraping_stats.update(
+            {
+                "repos_not_found": 0,
+                "repos_with_at_least_one_workflow": 0,
+                "total_number_of_workflows": 0,
+                "total_number_of_valid_workflows": 0,  # Valid YAML file
+                "total_number_of_invalid_workflows": 0,  # Invalid YAML file
+            }
+        )
 
         # Set up the yaml parser
         self.yaml_parser = YAML()
@@ -184,7 +197,7 @@ class WorkflowScraper(GitHubScraper):
 
         return summary
 
-    def scrape_repos(self, slugs: set[GitHubSlug]) -> None:
+    def scrape_repos(self, slugs: set[GitHubSlug]) -> list[GitHubSlug]:
         """Scrape GitHub repos for GitHub Actions workflows.
 
         Args:
@@ -301,5 +314,7 @@ class WorkflowScraper(GitHubScraper):
                         ],
                     )
 
+        self.scraping_stats["end_datetime"] = datetime.now()
         logging.info(LOGGING_CONTEXT + "Download completed.")
         logging.info(LOGGING_CONTEXT + str(self))
+        return repos_with_workflows
