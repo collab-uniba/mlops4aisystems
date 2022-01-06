@@ -9,20 +9,28 @@ from pathlib import Path
 import pretty_errors
 from rich.logging import RichHandler
 
-# Load configuration from secrets.ini file
+# Load secrets from `secrets.ini`
 config = configparser.ConfigParser()
-config_ini = Path("secrets.ini")
-if not config_ini.exists():
+secrets_file = Path("secrets.ini")
+if not secrets_file.exists():
     raise ValueError("The secrets.ini file does not exist.")
 else:
-    config.read(config_ini)
+    config.read(secrets_file)
+
+# Load settings from `settings.json`
+settings_file = Path("settings.json")
+if not settings_file.exists():
+    raise ValueError("The settings.json file does not exist.")
+else:
+    with open(settings_file) as s:
+        settings = json.load(s)
 
 # ------- #
 # LOGGING #
 # ------- #
 
 # Ensure the logs directory exists
-LOGS_DIR = Path(config["PATHS"]["LOGS_DIR"])
+LOGS_DIR = Path(settings["default_paths"]["LOGS_DIR"])
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Logging configuration
@@ -57,7 +65,7 @@ pretty_errors.configure(
 # ------------ #
 
 # Ensure the data directory exists
-DATA_DIR = Path(config["PATHS"]["DATA_DIR"])
+DATA_DIR = Path(settings["default_paths"]["DATA_DIR"])
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -65,4 +73,11 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 # GITHUB API #
 # ---------- #
 
-TOKEN_LIST = json.loads(config["GITHUB"]["TOKEN_LIST"])
+TOKEN_LIST: list[str] = json.loads(config["GITHUB"]["TOKEN_LIST"])
+
+
+# -------------------- #
+# EXPERIMENT VARIABLES #
+# -------------------- #
+
+KEYWORDS: list[str] = settings["keywords"]

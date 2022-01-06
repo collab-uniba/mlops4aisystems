@@ -1,0 +1,37 @@
+{
+  "default_paths": {
+    "DATA_DIR": "data/",
+    "LOGS_DIR": "logs/"
+  },
+  "keywords": [
+    "machine learn",
+    "machine-learn",
+    "data sci",
+    "data-sci",
+    "big data",
+    "big-data",
+    "large data",
+    "large-data",
+    "data analy",
+    "data-analy",
+    "deep learn",
+    "deep-learn",
+    "data model",
+    "data-model",
+    " ai ",
+    "prediction model",
+    "artificial intel",
+    "artificial-intel",
+    "topic modelling",
+    "topic-modelling",
+    "natural language pro",
+    "natural-language-pro",
+    "nlp",
+    "data frame",
+    "data proces",
+    " ml ",
+    "kaggle",
+    "neural net",
+    "neural-net"
+  ]
+}

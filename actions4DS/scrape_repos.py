@@ -15,7 +15,7 @@ from ruamel.yaml import YAML
 class GitHubScraper:
     """Base class for scraping GitHub repositories."""
 
-    def __init__(self, token_list: list[str], data_dir: Path) -> None:
+    def __init__(self, token_list: list[str]) -> None:
 
         # Set up the GitHub instance
         self.github = Github(token_list[0])
@@ -38,40 +38,9 @@ class DataScienceScraper(GitHubScraper):
     Extends: GitHubScraper
     """
 
-    KEYWORDS = [
-        "machine learn",
-        "machine-learn",
-        "data sci",
-        "data-sci",
-        "big data",
-        "big-data",
-        "large data",
-        "large-data",
-        "data analy",
-        "data-analy",
-        "deep learn",
-        "deep-learn",
-        "data model",
-        "data-model",
-        " ai ",
-        "prediction model",
-        "artificial intel",
-        "artificial-intel",
-        "topic modelling",
-        "topic-modelling",
-        "natural language pro",
-        "natural-language-pro",
-        "nlp",
-        "data frame",
-        "data proces",
-        " ml ",
-        "kaggle",
-        "neural net",
-        "neural-net",
-    ]
-
-    def __init__(self, token_list: list[str], data_dir: Path) -> None:
-        super().__init__(token_list, data_dir)
+    def __init__(self, token_list: list[str], keywords: list[str]) -> None:
+        super().__init__(token_list)
+        self.KEYWORDS = keywords
 
         # Initialize scraping stats
         self.scraping_stats = {
@@ -82,7 +51,7 @@ class DataScienceScraper(GitHubScraper):
         }
 
     def __str__(self) -> str:
-        summary = "\nSCRAPING SUMMARY\n"
+        summary = "SCRAPING SUMMARY\n"
         summary += "  - Repositories with at least one matching keyword (selected) = "
         summary += f"{self.scraping_stats['selected_repos'] };\n"
         summary += "  - Repositories with matching keyword(s) in topics = "
@@ -178,7 +147,7 @@ class WorkflowScraper(GitHubScraper):
     """
 
     def __init__(self, token_list: list[str], data_dir: Path) -> None:
-        super().__init__(token_list, data_dir)
+        super().__init__(token_list)
 
         # Initialize scraping stats
         self.scraping_stats = {
@@ -201,15 +170,15 @@ class WorkflowScraper(GitHubScraper):
             self.data_dir = data_dir
 
     def __str__(self) -> str:
-        summary = "\nSCRAPING SUMMARY\n"
+        summary = "SCRAPING SUMMARY\n"
         summary += "  - Repositories with at least one workflow = "
         summary += f"{self.scraping_stats['repos_with_at_least_one_workflow'] };\n"
         summary += "  - Total number of workflows = "
-        summary += f"{self.scraping_stats['total_number_of_workflows'] };"
+        summary += f"{self.scraping_stats['total_number_of_workflows'] };\n"
         summary += "  - Total number of valid workflows (valid YAML) = "
-        summary += f"{self.scraping_stats['total_number_of_valid_workflows'] };"
+        summary += f"{self.scraping_stats['total_number_of_valid_workflows'] };\n"
         summary += "  - Total number of invalid workflows (invalid YAML) = "
-        summary += f"{self.scraping_stats['total_number_of_invalid_workflows'] };"
+        summary += f"{self.scraping_stats['total_number_of_invalid_workflows'] };\n"
         summary += "  - Repositories not found = "
         summary += f"{self.scraping_stats['repos_not_found'] }\n"
 
