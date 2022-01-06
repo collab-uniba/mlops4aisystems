@@ -19,6 +19,7 @@ TOKEN_LIST = [
 [PATHS]
 DATA_DIR = path/to/data/dir
 LOGS_DIR = path/to/logs/dir
+DUMPS_DIR = path/to/dumps/dir
 ```
 
 To install the dependencies, open a Poetry shell session and run:
