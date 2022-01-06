@@ -4,7 +4,7 @@ This is the replication package of the CAIN 2022 paper on the use of GitHub Acti
 
 ## Setup
 
-Before running the scripts contained in this repository, you first need to create a `config.ini` file in the project root directory and populate it with the following entries:
+Before running the scripts contained in this repository, you first need to create a `secrets.ini` file in the project root directory and populate it with the following entries:
 
 ```ini
 [GITHUB]

@@ -9,11 +9,11 @@ from pathlib import Path
 import pretty_errors
 from rich.logging import RichHandler
 
-# Load configuration from config.ini file
+# Load configuration from secrets.ini file
 config = configparser.ConfigParser()
-config_ini = Path("config.ini")
+config_ini = Path("secrets.ini")
 if not config_ini.exists():
-    raise ValueError("The config.ini file does not exist.")
+    raise ValueError("The secrets.ini file does not exist.")
 else:
     config.read(config_ini)
 

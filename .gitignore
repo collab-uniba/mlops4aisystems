@@ -8,7 +8,7 @@ logs/
 data/
 
 # Config file
-config.ini
+secrets.ini
 
 *.stamp
 
