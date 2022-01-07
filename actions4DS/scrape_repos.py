@@ -5,6 +5,7 @@ import queue
 import re
 import threading
 import time
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -54,6 +55,7 @@ class GitHubScraper:
             sleep_time = reset_timestamp - calendar.timegm(time.gmtime()) + 5
             logging.info(f"Sleeping for {sleep_time} seconds...")
             time.sleep(sleep_time)
+            logging.info("Resuming after sleep...")
 
     def _dump_scraping_results(self) -> None:
         """Dump scraping results to a JSON file.
@@ -185,11 +187,22 @@ class DataScienceScraper(GitHubScraper):
                             ] += 1
                         self.scraping_stats["selected_repos"] += 1
 
+            # TODO: Distinguish between 404 errors (i.e., those represented by the
+            # `UnknownObjectException`) and other kinds of errors that arise
+            # while requesting repos from GitHub
+            # (e.g., github.GithubException.GithubException: 451
+            # {"message": "Repository access blocked", "block": {"reason": "dmca", ...}
             except UnknownObjectException:
                 self.scraping_stats["repos_not_found"] += 1
                 self.progress.console.log(
                     f':cross_mark: Repository not found: "{slug}".',
                 )
+            except Exception:
+                self.scraping_stats["repos_not_found"] += 1
+                self.progress.console.log(
+                    f':cross_mark: Error while accessing the repo: "{slug}".',
+                )
+                self.progress.console.log(traceback.format_exc())
             finally:
                 self.progress.update(
                     self.task,
@@ -377,11 +390,20 @@ class WorkflowScraper(GitHubScraper):
                         f'No workflows found in "{slug}". Skipping...',
                     )
 
+            # TODO: Distinguish between 404 errors (i.e., those represented by the
+            # `UnknownObjectException`) and other kinds of errors that arise
+            # while requesting repos from GitHub (see the same TODO above for more info)
             except UnknownObjectException:
                 self.scraping_stats["repos_not_found"] += 1
                 self.progress.console.log(
                     f':cross_mark: Repository not found: "{slug}".',
                 )
+            except Exception:
+                self.scraping_stats["repos_not_found"] += 1
+                self.progress.console.log(
+                    f':cross_mark: Error while accessing the repo: "{slug}".',
+                )
+                self.progress.console.log(traceback.format_exc())
             finally:
                 self.progress.update(
                     self.task,
