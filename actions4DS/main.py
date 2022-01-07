@@ -10,5 +10,5 @@ if __name__ == "__main__":
     slugs = set(reaper_slugs)
 
     # STEP 2: scrape repos to collect workflows
-    wf_scraper = WorkflowScraper(TOKEN_LIST, DUMPS_DIR, DATA_DIR)
-    wf_scraper.scrape_repos(slugs)
+    wf_scraper = WorkflowScraper(TOKEN_LIST, DUMPS_DIR, DATA_DIR, slugs)
+    wf_scraper.scrape_repos()

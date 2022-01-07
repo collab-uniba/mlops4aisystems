@@ -71,8 +71,8 @@ def _filter_datascience_repos(
     Returns:
         list : the list of GitHub slugs for data science repositories
     """
-    ds_scraper = DataScienceScraper(token_list, dumps_dir, keywords)
-    slugs = ds_scraper.scrape_repos(all_slugs)
+    ds_scraper = DataScienceScraper(token_list, dumps_dir, keywords, all_slugs)
+    slugs = ds_scraper.scrape_repos()
     return slugs
 
 
