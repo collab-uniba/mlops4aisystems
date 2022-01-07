@@ -48,11 +48,11 @@ class GitHubScraper:
         """Check the rate limit of the Github API."""
         core_rate_limit = github.get_rate_limit().core
         if core_rate_limit.remaining <= 5:
-            print("Rate limit reached...")
+            logging.info("Rate limit reached...")
             reset_timestamp = calendar.timegm(core_rate_limit.reset.timetuple())
             # add 5 seconds to be sure the rate limit has been reset)
             sleep_time = reset_timestamp - calendar.timegm(time.gmtime()) + 5
-            print(f"Sleeping for {sleep_time} seconds...")
+            logging.info(f"Sleeping for {sleep_time} seconds...")
             time.sleep(sleep_time)
 
     def _dump_scraping_results(self) -> None:
