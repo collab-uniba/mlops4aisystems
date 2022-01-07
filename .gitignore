@@ -11,6 +11,10 @@ dumps/
 # Env file
 env.ini
 
+# Draft script to try things out
+# TODO: delete this entry before release
+scrapbook.py
+
 *.stamp
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,jupyternotebooks,pycharm,macos
