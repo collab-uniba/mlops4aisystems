@@ -112,7 +112,9 @@ def get_repos_from_reporeaper(
     dataset = Path(data_dir, "reporeaper.csv")
     if not dataset.exists():
         logging.info(LOGGING_CONTEXT + f"Unzipping '{dataset_gzip}' to '{dataset}'...")
-        df = pd.read_csv(dataset_gzip, compression="gzip", header=0, sep=",")
+        df = pd.read_csv(
+            dataset_gzip, compression="gzip", header=0, sep=",", dtype={"stars": object}
+        )
         df.to_csv(dataset, index=False)
     else:
         logging.info(LOGGING_CONTEXT + "CSV file already exists. Skipping unzipping.")
