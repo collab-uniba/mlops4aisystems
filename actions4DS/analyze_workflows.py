@@ -113,6 +113,10 @@ class Workflow:
             "filename": self.filename,
             "name": self.name,
             "trigger_events": self.events,
+            "n_of_actions": len(self.actions),
+            "docker_related_actions": any([a.docker_related for a in self.actions]),
+            "n_of_run_commands": len(self.commands),
+            "docker_related_commands": any([c.docker_related for c in self.commands]),
         }
         return d
 
