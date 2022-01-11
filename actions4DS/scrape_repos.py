@@ -20,8 +20,15 @@ class GitHubScraper:
     """Base class for scraping GitHub repositories."""
 
     def __init__(
-        self, token_list: list[str], dumps_dir: Path, slugs: list[GitHubSlug]
+        self,
+        experiment_settings: dict,
+        token_list: list[str],
+        dumps_dir: Path,
+        slugs: list[GitHubSlug],
     ) -> None:
+
+        # Set up the experiment settings
+        self.experiment_settings = experiment_settings
 
         # Set up the dumps directory
         self.dumps_dir: Path = dumps_dir
@@ -62,20 +69,26 @@ class GitHubScraper:
 
         The output file will contain:
 
+        - the experiment settings
         - the scraping stats
-        - the selected list of slugs
+        - the list of selected slugs
 
-        The output file will be placed in a `DATA_DIR` subfolder called `dumps`.
+        The output file will be placed in `DUMPS_DIR/`.
         """
 
-        # Define dump filename upon the name of the class that is dumped
-        dump_path = self.dumps_dir / (self.__class__.__name__ + "_dump.json")
+        # Define dump filename upon the name of the class that produces it
+        # and the current date
+        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        dump_path = self.dumps_dir / (
+            current_time + "_" + self.__class__.__name__ + "_dump.json"
+        )
 
         # Prepare the dictionary to dump
-        dump: dict = self.scraping_stats
+        dump: dict = {}
+        dump.update({"experiment_settings": self.experiment_settings})
+        dump.update({"scraping_stats": self.scraping_stats})
         slug_list = [str(slug) for slug in self.selected_slugs]
-        slug_dict = {"selected_slugs": slug_list}
-        dump.update(slug_dict)
+        dump.update({"selected_slugs": slug_list})
 
         # Write the dump to disk as a JSON file
         with open(dump_path, "w") as dump_file:
@@ -90,15 +103,15 @@ class DataScienceScraper(GitHubScraper):
 
     def __init__(
         self,
+        experiment_settings: dict,
         token_list: list[str],
         dumps_dir: Path,
-        keywords: list[str],
         slugs: list[GitHubSlug],
     ) -> None:
-        super().__init__(token_list, dumps_dir, slugs)
+        super().__init__(experiment_settings, token_list, dumps_dir, slugs)
 
         # Set filtering keywords
-        self.KEYWORDS = keywords
+        self.KEYWORDS: list[str] = self.experiment_settings["keywords"]
 
         # Initialize scraping stats
         self.scraping_stats.update(
@@ -254,12 +267,13 @@ class WorkflowScraper(GitHubScraper):
 
     def __init__(
         self,
+        experiment_settings: dict,
         token_list: list[str],
         dumps_dir: Path,
         data_dir: Path,
         slugs: list[GitHubSlug],
     ) -> None:
-        super().__init__(token_list, dumps_dir, slugs)
+        super().__init__(experiment_settings, token_list, dumps_dir, slugs)
 
         # Initialize scraping stats
         self.scraping_stats.update(

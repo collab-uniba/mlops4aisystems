@@ -23,7 +23,7 @@ if not settings_file.exists():
     raise ValueError("The settings.json file does not exist.")
 else:
     with open(settings_file) as s:
-        settings = json.load(s)
+        EXPERIMENT_SETTINGS = json.load(s)
 
 # ------- #
 # LOGGING #
@@ -78,10 +78,3 @@ DUMPS_DIR.mkdir(parents=True, exist_ok=True)
 # ---------- #
 
 TOKEN_LIST: list[str] = json.loads(config["GITHUB"]["TOKEN_LIST"])
-
-
-# -------------------- #
-# EXPERIMENT VARIABLES #
-# -------------------- #
-
-KEYWORDS: list[str] = settings["keywords"]

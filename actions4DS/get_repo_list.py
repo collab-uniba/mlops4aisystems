@@ -57,10 +57,10 @@ def get_repos_from_boa_dataset() -> list[GitHubSlug]:
 
 
 def _filter_datascience_repos(
-    all_slugs: list[GitHubSlug],
+    experiment_settings: dict,
     token_list: list[str],
     dumps_dir: Path,
-    keywords: list[str],
+    all_slugs: list[GitHubSlug],
 ) -> list[GitHubSlug]:
     """Filter the list of GitHub slugs to only include data science repositories.
 
@@ -71,13 +71,15 @@ def _filter_datascience_repos(
     Returns:
         list : the list of GitHub slugs for data science repositories
     """
-    ds_scraper = DataScienceScraper(token_list, dumps_dir, keywords, all_slugs)
+    ds_scraper = DataScienceScraper(
+        experiment_settings, token_list, dumps_dir, all_slugs
+    )
     slugs = ds_scraper.scrape_repos()
     return slugs
 
 
 def get_repos_from_reporeaper(
-    token_list: list[str], dumps_dir: Path, data_dir: Path, keywords: list[str]
+    experiment_settings: dict, token_list: list[str], dumps_dir: Path, data_dir: Path
 ) -> list[GitHubSlug]:
     """Get the list of repo slugs from the
     [RepoReaper](https://reporeapers.github.io) dataset.
@@ -130,7 +132,7 @@ def get_repos_from_reporeaper(
 
     logging.info(LOGGING_CONTEXT + "Filtering data science repositories...")
 
-    slugs = _filter_datascience_repos(slugs, token_list, dumps_dir, keywords)
+    slugs = _filter_datascience_repos(experiment_settings, token_list, dumps_dir, slugs)
     logging.info(
         LOGGING_CONTEXT + f"Total number of data science repositories: {len(slugs)}."
     )
