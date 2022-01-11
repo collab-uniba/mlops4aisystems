@@ -124,10 +124,10 @@ def get_repos_from_reporeaper(
 
     df.drop(df.index[df["stars"] == "None"], inplace=True)
     df["stars"] = df["stars"].astype(int)
-    slugs = df.query("stars > 1")["repository"]
+    slugs = df.query("randomforest_utl == 1 & stars > 1")["repository"]
     logging.info(
         LOGGING_CONTEXT
-        + f"Total number of repositories with more than 1 stars: {len(slugs)}."
+        + f"Total number of engineered sw projects with 2+ stars: {len(slugs)}."
     )
 
     logging.info(LOGGING_CONTEXT + "Filtering data science repositories...")

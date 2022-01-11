@@ -1,4 +1,6 @@
 {
+  "githubActionsReleaseCondition": true,
+  "githubActionsRelease-offset-months": 6,
   "keywords": [
     "machine learn",
     "machine-learn",

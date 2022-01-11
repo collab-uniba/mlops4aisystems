@@ -6,7 +6,7 @@ import re
 import threading
 import time
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from github import Github
@@ -98,6 +98,12 @@ class GitHubScraper:
 class DataScienceScraper(GitHubScraper):
     """Scraper for data science repositories.
 
+    INCLUSION CRITERIA
+    - The last commit in the repo must have been done `self.OFFSET_MONTHS` past
+      the release date of GitHub Actions.
+    - The description or the topics of the repo must contain at least one of
+      the keywords in `self.KEYWORDS`
+
     Extends: GitHubScraper
     """
 
@@ -110,15 +116,27 @@ class DataScienceScraper(GitHubScraper):
     ) -> None:
         super().__init__(experiment_settings, token_list, dumps_dir, slugs)
 
+        # Set GitHub Actions release date and offset months
+        self.gh_actions_release_condition: bool = self.experiment_settings[
+            "githubActionsReleaseCondition"
+        ]
+        if self.gh_actions_release_condition:
+            GITHUB_ACTIONS_RELEASE_DATE: datetime = datetime(2019, 11, 1)
+            OFFSET_MONTHS: int = int(
+                self.experiment_settings["githubActionsRelease-offset-months"]
+            )
+            self.ACCEPTANCE_DATE = GITHUB_ACTIONS_RELEASE_DATE + timedelta(
+                days=(OFFSET_MONTHS * 30)
+            )
+
         # Set filtering keywords
         self.KEYWORDS: list[str] = self.experiment_settings["keywords"]
 
         # Initialize scraping stats
         self.scraping_stats.update(
             {
-                "repos_not_found": 0,
-                "repos_with_keywords_in_topics": 0,
-                "repos_with_keywords_in_description": 0,
+                "repos_not_available": 0,
+                "repos_inactive_before_GHA_release": 0,
                 "selected_repos": 0,
             }
         )
@@ -138,14 +156,12 @@ class DataScienceScraper(GitHubScraper):
 
     def __str__(self) -> str:
         summary = "SUMMARY\n"
-        summary += "  - Repositories with at least one matching keyword = "
+        summary += "  - Selected repositories = "
         summary += f"{self.scraping_stats['selected_repos'] };\n"
-        summary += "  - Repositories with matching keyword(s) in topics = "
-        summary += f"{self.scraping_stats['repos_with_keywords_in_topics'] };\n"
-        summary += "  - Repositories with matching keyword(s) in description = "
-        summary += f"{self.scraping_stats['repos_with_keywords_in_description'] };\n"
+        summary += "  - Repositories inactive before GitHub Actions release = "
+        summary += f"{self.scraping_stats['repos_inactive_before_GHA_release'] };\n"
         summary += "  - Repositories not found = "
-        summary += f"{self.scraping_stats['repos_not_found'] }\n"
+        summary += f"{self.scraping_stats['repos_not_available'] }\n"
 
         return summary
 
@@ -172,50 +188,53 @@ class DataScienceScraper(GitHubScraper):
             self._check_rate_limit(github)
 
             try:
-                repo = github.get_repo(str(slug))
+                repo = github.get_repo(str(slug))  # API request (+1)
 
-                try:
-                    topics = " ".join(repo.get_topics())
-                except UnknownObjectException:
-                    topics = ""
-                description = repo.description or ""
+                if self.gh_actions_release_condition:
+                    # Decide based on last-commit date
+                    is_last_commit_date_ok = False
+                    commits = repo.get_commits(since=self.ACCEPTANCE_DATE)
 
-                for keyword in self.KEYWORDS:
-                    keywords_in_topics = re.search(keyword, topics, re.IGNORECASE)
-                    keywords_in_description = re.search(
-                        keyword, description, re.IGNORECASE
-                    )
-                    if keywords_in_topics or keywords_in_description:
+                    try:
+                        commits[0]  # API request (+1)
+                        is_last_commit_date_ok = True
+                    except IndexError:
+                        self.scraping_stats["repos_inactive_before_GHA_release"] += 1
+                        self.progress.console.log(
+                            f':cross_mark: Repo inactive before GHA release: "{slug}".',
+                        )
+
+                if (not self.gh_actions_release_condition) or is_last_commit_date_ok:
+
+                    # Decide based on keywords presence in repo topics or description
+                    try:
+                        topics = " ".join(repo.get_topics())  # API request (+1)
+                    except UnknownObjectException:
+                        topics = ""
+                    description = repo.description or ""
+
+                    keyword_found = False
+                    for keyword in self.KEYWORDS:
+                        keyword_in_topics = re.search(keyword, topics, re.IGNORECASE)
+                        keyword_in_description = re.search(
+                            keyword, description, re.IGNORECASE
+                        )
+                        if keyword_in_topics or keyword_in_description:
+                            keyword_found = True
+                            break
+
+                    if keyword_found:
                         self.selected_slugs.append(slug)
                         self.progress.console.log(
                             f':thumbs_up: Data science repo found: "{slug}".',
                         )
-
-                        # Update scraping stats
-                        if keywords_in_topics:
-                            self.scraping_stats["repos_with_keywords_in_topics"] += 1
-                        if keywords_in_description:
-                            self.scraping_stats[
-                                "repos_with_keywords_in_description"
-                            ] += 1
                         self.scraping_stats["selected_repos"] += 1
 
-            # TODO: Distinguish between 404 errors (i.e., those represented by the
-            # `UnknownObjectException`) and other kinds of errors that arise
-            # while requesting repos from GitHub
-            # (e.g., github.GithubException.GithubException: 451
-            # {"message": "Repository access blocked", "block": {"reason": "dmca", ...}
-            except UnknownObjectException:
-                self.scraping_stats["repos_not_found"] += 1
-                self.progress.console.log(
-                    f':cross_mark: Repository not found: "{slug}".',
-                )
             except Exception:
-                self.scraping_stats["repos_not_found"] += 1
+                self.scraping_stats["repos_not_available"] += 1
                 self.progress.console.log(
-                    f':cross_mark: Error while accessing the repo: "{slug}".',
+                    f':cross_mark: Repository not available: "{slug}".',
                 )
-                self.progress.console.log(traceback.format_exc())
             finally:
                 self.progress.update(
                     self.task,
