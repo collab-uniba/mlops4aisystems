@@ -1,10 +1,12 @@
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import pandas as pd
-from config import DATA_DIR
+import requests
+from bs4 import BeautifulSoup
+from config import DATA_DIR, DUMPS_DIR
 from mlxtend import frequent_patterns
 from mlxtend.frequent_patterns import apriori
 from mlxtend.preprocessing import TransactionEncoder
@@ -14,6 +16,10 @@ from ruamel.yaml import YAML
 
 
 class Action:
+
+    scraping_cache: dict = {}
+    BASE_MARKETPLACE_URL = "https://github.com/marketplace/actions/"
+
     def __init__(
         self,
         slug: str,
@@ -32,6 +38,16 @@ class Action:
 
         self.docker_related = self._is_docker_related()
 
+        self.parsed_marketplace_page: BeautifulSoup = (
+            self._get_parsed_marketplace_page()
+        )
+
+        self.is_from_verified_creator = None
+        self.categories = None
+        if self.parsed_marketplace_page:
+            self.is_from_verified_creator = self._is_from_verified_creator()
+            self.categories = self._get_action_categories()
+
     def asdict(self) -> dict:
         return {
             "action_slug": self.slug,
@@ -39,6 +55,12 @@ class Action:
             "action_slug_noTag": self.slug_without_tag,
             "action_tag": self.tag,
             "docker_related_action": self.docker_related,
+            "available_in_marketplace": True if self.parsed_marketplace_page else False,
+            "from_verified_creator": True if self.is_from_verified_creator else False,
+            "category_1": self.categories[0] if self.categories else None,
+            "category_2": self.categories[1]
+            if self.categories and len(self.categories) > 1
+            else None,
         }
 
     def __repr__(self) -> str:
@@ -49,6 +71,72 @@ class Action:
 
     def _is_docker_related(self) -> bool:
         return True if re.search("docker", self.slug, re.IGNORECASE) else False
+
+    def _get_parsed_marketplace_page(self) -> Optional[BeautifulSoup]:
+
+        cache = self.scraping_cache.get(self.name)
+        if cache:
+            if cache["available_in_marketplace"]:
+                return cache["parsed_html"]
+            else:
+                return None
+        else:
+            URL = self.BASE_MARKETPLACE_URL + self.name
+            try:
+                page = requests.get(URL)
+                if page.status_code != 200:
+                    raise Exception("Page not found.")
+                parsed_html = BeautifulSoup(page.content, "html.parser")
+                self.scraping_cache.update(
+                    {
+                        self.name: {
+                            "available_in_marketplace": True,
+                            "parsed_html": parsed_html,
+                            "from_verified_creator": None,
+                            "categories": None,
+                        }
+                    }
+                )
+                return parsed_html
+            except Exception:
+                self.scraping_cache.update(
+                    {
+                        self.name: {
+                            "available_in_marketplace": False,
+                            "parsed_html": None,
+                            "from_verified_creator": None,
+                            "categories": None,
+                        }
+                    }
+                )
+                return None
+
+    def _is_from_verified_creator(self) -> bool:
+        cache = self.scraping_cache[self.name]["from_verified_creator"]
+        if cache:
+            return cache
+        else:
+            res = (
+                True
+                if self.parsed_marketplace_page.find_all(
+                    "svg", class_="octicon-verified"
+                )
+                else False
+            )
+            self.scraping_cache[self.name]["from_verified_creator"] = res
+            return res
+
+    def _get_action_categories(self) -> tuple:
+        cache = self.scraping_cache[self.name]["categories"]
+        if cache:
+            return cache
+        else:
+            res = tuple(
+                c.text.strip()
+                for c in self.parsed_marketplace_page.find_all("a", class_="topic-tag")
+            )
+            self.scraping_cache[self.name]["categories"] = res
+            return res
 
 
 class RunCommand:
@@ -165,6 +253,23 @@ class WorkflowAnalyzer:
         for workflow_path in data_dir.glob("**/*.y*ml"):
             self.workflows.append(Workflow(data_dir, workflow_path))
 
+        # DATAFRAMES
+        # Workflows
+        self.workflows_df = pd.DataFrame.from_records(
+            [workflow.asdict() for workflow in self.workflows]
+        )
+
+        # Actions
+        dataset_actions = []
+        for workflow in self.workflows:
+            workflow_actions = []
+            for action in workflow.actions:
+                action_dict = action.asdict()
+                action_dict["workflow"] = str(workflow)
+                workflow_actions.append(action_dict)
+            dataset_actions.extend(workflow_actions)
+        self.actions_df = pd.DataFrame.from_records(dataset_actions)
+
         # FREQUENT PATTERN MINING
         # Actions
         self.frequent_actions_df = self._get_frequently_cooccurring_actions(
@@ -226,6 +331,15 @@ class WorkflowAnalyzer:
 if __name__ == "__main__":
     wa = WorkflowAnalyzer(DATA_DIR)
 
-    workflows_df = pd.DataFrame.from_records(
-        [workflow.asdict() for workflow in wa.workflows]
+    # Serializing dataframes
+    wa.workflows_df.to_pickle(DUMPS_DIR / "workflows_df.pkl")
+    wa.actions_df.to_pickle(DUMPS_DIR / "actions_df.pkl")
+    wa.frequent_actions_df.to_pickle(DUMPS_DIR / "frequent_actions_df.pkl")
+    wa.frequent_actions_noTags_df.to_pickle(
+        DUMPS_DIR / "frequent_actions_noTags_df.pkl"
     )
+    wa.frequent_docker_commands_subsample_df.to_pickle(
+        DUMPS_DIR / "frequent_docker_commands_subsample_df.pkl"
+    )
+
+    print("Done.")
