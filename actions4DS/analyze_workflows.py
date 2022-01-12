@@ -18,7 +18,7 @@ from ruamel.yaml import YAML
 class Action:
 
     scraping_cache: dict = {}
-    BASE_MARKETPLACE_URL = "https://github.com/marketplace/actions/"
+    BASE_GITHUB_URL = "https://github.com"
 
     def __init__(
         self,
@@ -74,22 +74,34 @@ class Action:
 
     def _get_parsed_marketplace_page(self) -> Optional[BeautifulSoup]:
 
-        cache = self.scraping_cache.get(self.name)
+        cache = self.scraping_cache.get(self.slug_without_tag)
         if cache:
             if cache["available_in_marketplace"]:
                 return cache["parsed_html"]
             else:
                 return None
         else:
-            URL = self.BASE_MARKETPLACE_URL + self.name
+            URL = self.BASE_GITHUB_URL + "/" + self.slug_without_tag
+
             try:
                 page = requests.get(URL)
                 if page.status_code != 200:
-                    raise Exception("Page not found.")
+                    raise Exception("GitHub repo not found.")
+                repo_page_html = BeautifulSoup(page.content, "html.parser")
+                view_on_marketplace_btn = repo_page_html.find(
+                    "a", string="View on Marketplace"
+                )
+                if view_on_marketplace_btn:
+                    marketplace_ref = view_on_marketplace_btn["href"]
+
+                URL = self.BASE_GITHUB_URL + marketplace_ref
+                page = requests.get(URL)
+                if page.status_code != 200:
+                    raise Exception("Marketplace page not found.")
                 parsed_html = BeautifulSoup(page.content, "html.parser")
                 self.scraping_cache.update(
                     {
-                        self.name: {
+                        self.slug_without_tag: {
                             "available_in_marketplace": True,
                             "parsed_html": parsed_html,
                             "from_verified_creator": None,
@@ -101,7 +113,7 @@ class Action:
             except Exception:
                 self.scraping_cache.update(
                     {
-                        self.name: {
+                        self.slug_without_tag: {
                             "available_in_marketplace": False,
                             "parsed_html": None,
                             "from_verified_creator": None,
@@ -112,7 +124,7 @@ class Action:
                 return None
 
     def _is_from_verified_creator(self) -> bool:
-        cache = self.scraping_cache[self.name]["from_verified_creator"]
+        cache = self.scraping_cache[self.slug_without_tag]["from_verified_creator"]
         if cache:
             return cache
         else:
@@ -123,11 +135,11 @@ class Action:
                 )
                 else False
             )
-            self.scraping_cache[self.name]["from_verified_creator"] = res
+            self.scraping_cache[self.slug_without_tag]["from_verified_creator"] = res
             return res
 
     def _get_action_categories(self) -> tuple:
-        cache = self.scraping_cache[self.name]["categories"]
+        cache = self.scraping_cache[self.slug_without_tag]["categories"]
         if cache:
             return cache
         else:
@@ -135,7 +147,7 @@ class Action:
                 c.text.strip()
                 for c in self.parsed_marketplace_page.find_all("a", class_="topic-tag")
             )
-            self.scraping_cache[self.name]["categories"] = res
+            self.scraping_cache[self.slug_without_tag]["categories"] = res
             return res
 
 
