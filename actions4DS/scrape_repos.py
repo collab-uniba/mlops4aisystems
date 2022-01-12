@@ -42,6 +42,13 @@ class GitHubScraper:
         # Initialize list of selected slugs
         self.selected_slugs: list[GitHubSlug] = []
 
+        # Define dump filename upon the name of the class that produces it
+        # and the current date
+        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.dump_path = self.dumps_dir / (
+            current_time + "_" + self.__class__.__name__ + "_dump.json"
+        )
+
         # Initialize multithreading
         self.token_list = token_list
         self.queue: queue.Queue = queue.Queue()
@@ -75,14 +82,6 @@ class GitHubScraper:
 
         The output file will be placed in `DUMPS_DIR/`.
         """
-
-        # Define dump filename upon the name of the class that produces it
-        # and the current date
-        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        dump_path = self.dumps_dir / (
-            current_time + "_" + self.__class__.__name__ + "_dump.json"
-        )
-
         # Prepare the dictionary to dump
         dump: dict = {}
         dump.update({"experiment_settings": self.experiment_settings})
@@ -91,7 +90,7 @@ class GitHubScraper:
         dump.update({"selected_slugs": slug_list})
 
         # Write the dump to disk as a JSON file
-        with open(dump_path, "w") as dump_file:
+        with open(self.dump_path, "w") as dump_file:
             json.dump(dump, dump_file, indent=4)
 
 
@@ -237,6 +236,7 @@ class DataScienceScraper(GitHubScraper):
                                 f':thumbs_up: Data science repo found: "{slug}".',
                             )
                             self.scraping_stats["selected_repos"] += 1
+                            self._dump_scraping_results()
 
                 except Exception:
                     self.scraping_stats["repos_not_available"] += 1
