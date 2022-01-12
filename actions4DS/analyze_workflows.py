@@ -114,7 +114,7 @@ class Workflow:
             "docker_related_actions": any([a.docker_related for a in self.actions]),
             "n_of_run_commands": len(self.commands),
             "docker_related_commands": any([c.docker_related for c in self.commands]),
-            "docker_commands": self.docker_commands.keys(),
+            "docker_commands": list(self.docker_commands.keys()),
         }
         return d
 
@@ -165,6 +165,8 @@ class WorkflowAnalyzer:
         for workflow_path in data_dir.glob("**/*.y*ml"):
             self.workflows.append(Workflow(data_dir, workflow_path))
 
+        # FREQUENT PATTERN MINING
+        # Actions
         self.frequent_actions_df = self._get_frequently_cooccurring_actions(
             support=0.05, include_tags=True
         )
@@ -172,8 +174,12 @@ class WorkflowAnalyzer:
             support=0.05, include_tags=False
         )
 
-        print(self.frequent_actions_df)
-        print(self.frequent_actions_noTags_df)
+        # Docker commands
+        self.frequent_docker_commands_subsample_df = (
+            self._get_frequently_cooccurring_docker_commands(
+                support=0.05, include_workflows_without_docker_commands=False
+            )
+        )
 
     def _mine_frequent_patterns(
         self, transactions_df: pd.DataFrame, support: float
@@ -202,6 +208,19 @@ class WorkflowAnalyzer:
                     [action.slug_without_tag for action in workflow.actions]
                 )
         return self._mine_frequent_patterns(actions_per_workflow, support=support)
+
+    def _get_frequently_cooccurring_docker_commands(
+        self, support: float, include_workflows_without_docker_commands: bool = True
+    ) -> pd.DataFrame:
+        docker_commands_per_workflow = []
+        for workflow in self.workflows:
+            workflow_docker_commands = workflow.docker_commands.keys()
+            if (
+                include_workflows_without_docker_commands
+                or len(workflow_docker_commands) > 0
+            ):
+                docker_commands_per_workflow.append(workflow_docker_commands)
+        return self._mine_frequent_patterns(docker_commands_per_workflow, support)
 
 
 if __name__ == "__main__":
