@@ -79,14 +79,14 @@ def _filter_datascience_repos(
 
 
 def get_repos_from_reporeaper(
-    experiment_settings: dict, token_list: list[str], dumps_dir: Path, data_dir: Path
+    experiment_settings: dict, token_list: list[str], dumps_dir: Path
 ) -> list[GitHubSlug]:
     """Get the list of repo slugs from the
     [RepoReaper](https://reporeapers.github.io) dataset.
 
     Args:
         token_list (list[str]): list of GitHub tokens
-        data_dir (Path): path to the data directory
+        dumps_dir (Path): path to the dumps directory
 
     Returns:
         list: the list of data-science GitHub slugs for the projects from
@@ -95,7 +95,7 @@ def get_repos_from_reporeaper(
 
     LOGGING_CONTEXT = "[Getting slugs from RepoReaper] "
 
-    dataset_gzip = Path(data_dir, "dataset.csv.gz")
+    dataset_gzip = Path(dumps_dir, "dataset.csv.gz")
     if not dataset_gzip.exists():
         URL = "https://reporeapers.github.io/static/downloads/dataset.csv.gz"
         logging.info(LOGGING_CONTEXT + f"Downloading '{URL}'...")
@@ -111,7 +111,7 @@ def get_repos_from_reporeaper(
     else:
         logging.info(LOGGING_CONTEXT + "GZip file already exists. Skipping download.")
 
-    dataset = Path(data_dir, "reporeaper.csv")
+    dataset = Path(dumps_dir, "reporeaper.csv")
     if not dataset.exists():
         logging.info(LOGGING_CONTEXT + f"Unzipping '{dataset_gzip}' to '{dataset}'...")
         df = pd.read_csv(

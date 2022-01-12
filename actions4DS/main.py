@@ -6,9 +6,7 @@ if __name__ == "__main__":
 
     # STEP 1: get list of repo slugs
     boa_slugs = get_repos_from_boa_dataset()
-    reaper_slugs = get_repos_from_reporeaper(
-        EXPERIMENT_SETTINGS, TOKEN_LIST, DUMPS_DIR, DATA_DIR
-    )
+    reaper_slugs = get_repos_from_reporeaper(EXPERIMENT_SETTINGS, TOKEN_LIST, DUMPS_DIR)
     slugs = set(reaper_slugs)
 
     # STEP 2: scrape repos to collect workflows
