@@ -122,9 +122,7 @@ def get_repos_from_reporeaper(
         logging.info(LOGGING_CONTEXT + "CSV file already exists. Skipping unzipping.")
         df = pd.read_csv(dataset, header=0, sep=",", dtype={"stars": object})
 
-    df.drop(df.index[df["stars"] == "None"], inplace=True)
-    df["stars"] = df["stars"].astype(int)
-    slugs = df.query("randomforest_utl == 1 & stars > 1")["repository"]
+    slugs = df.query("randomforest_utl == 1")["repository"]
     logging.info(
         LOGGING_CONTEXT
         + f"Total number of engineered sw projects with 2+ stars: {len(slugs)}."
