@@ -5,6 +5,8 @@ from typing import Optional
 
 import pandas as pd
 from config import DATA_DIR
+from mlxtend.frequent_patterns import apriori
+from mlxtend.preprocessing import TransactionEncoder
 from models import GitHubSlug
 from rich import print
 from ruamel.yaml import YAML
@@ -17,6 +19,7 @@ class Action:
     ) -> None:
         self.slug = slug
         self.docker_related = self._is_docker_related()
+        # TODO: validation
 
     @property
     def owner(self) -> str:
@@ -40,6 +43,19 @@ class Action:
         except ValueError:
             tag = ""
         return tag
+
+    @property
+    def slug_without_tag(self) -> str:
+
+        # TODO: fix this method
+        *owner, name_with_tag = self.slug.split("/")
+        joined_owner = "/".join(owner)
+        try:
+            name, _ = name_with_tag.split("@")
+            slug_without_tag = joined_owner + name
+        except ValueError:
+            slug_without_tag = self.slug
+        return slug_without_tag
 
     def asdict(self) -> dict:
         return {"action_slug": self.slug, "docker_related_action": self.docker_related}
@@ -117,6 +133,7 @@ class Workflow:
             "docker_related_actions": any([a.docker_related for a in self.actions]),
             "n_of_run_commands": len(self.commands),
             "docker_related_commands": any([c.docker_related for c in self.commands]),
+            "docker_commands": self.docker_commands.keys(),
         }
         return d
 
@@ -167,6 +184,26 @@ class WorkflowAnalyzer:
         for workflow_path in data_dir.glob("**/*.y*ml"):
             self.workflows.append(Workflow(data_dir, workflow_path))
 
+        actions_per_workflow = []
+        for workflow in self.workflows:
+            actions_per_workflow.append([action.slug for action in workflow.actions])
+
+        actions_without_tags_per_workflow = []
+        for workflow in self.workflows:
+            actions_without_tags_per_workflow.append(
+                [action.slug_without_tag for action in workflow.actions]
+            )
+
+        te = TransactionEncoder()
+        encoding = te.fit(actions_per_workflow).transform(actions_per_workflow)
+        encoding_df = pd.DataFrame(encoding, columns=te.columns_)
+        frequent_itemsets = apriori(encoding_df, min_support=0.1, use_colnames=True)
+        print(frequent_itemsets)
+        frequent_itemsets["length"] = frequent_itemsets["itemsets"].apply(
+            lambda x: len(x)
+        )
+        print(frequent_itemsets[frequent_itemsets["length"] >= 2].loc[8]["itemsets"])
+
 
 if __name__ == "__main__":
     wa = WorkflowAnalyzer(DATA_DIR)
@@ -175,4 +212,5 @@ if __name__ == "__main__":
         [workflow.asdict() for workflow in wa.workflows]
     )
 
-    print(workflows_df)
+    print(workflows_df.loc[workflows_df["docker_related_commands"]])
+    print(workflows_df["docker_commands"].dtype)
