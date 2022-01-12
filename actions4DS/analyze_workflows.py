@@ -5,6 +5,7 @@ from typing import Optional
 
 import pandas as pd
 from config import DATA_DIR
+from mlxtend import frequent_patterns
 from mlxtend.frequent_patterns import apriori
 from mlxtend.preprocessing import TransactionEncoder
 from models import GitHubSlug
@@ -17,48 +18,28 @@ class Action:
         self,
         slug: str,
     ) -> None:
-        self.slug = slug
+        # Slug validation
+        regex = re.compile(r"^(.*\/([^@\n]*))(@.*)?$")
+        match = regex.match(slug)
+        if match:
+            self.slug = slug
+        else:
+            raise ValueError("Invalid action slug.")
+
+        self.name = match.group(2)
+        self.slug_without_tag = match.group(1)
+        self.tag = match.group(3)
+
         self.docker_related = self._is_docker_related()
-        # TODO: validation
-
-    @property
-    def owner(self) -> str:
-        owner, _ = self.slug.split("/")
-        return owner
-
-    @property
-    def name(self) -> str:
-        _, name_with_tag = self.slug.split("/")
-        try:
-            name, _ = name_with_tag.split("@")
-        except ValueError:
-            name = name_with_tag
-        return name
-
-    @property
-    def tag(self) -> str:
-        _, name_with_tag = self.slug.split("/")
-        try:
-            _, tag = name_with_tag.split("@")
-        except ValueError:
-            tag = ""
-        return tag
-
-    @property
-    def slug_without_tag(self) -> str:
-
-        # TODO: fix this method
-        *owner, name_with_tag = self.slug.split("/")
-        joined_owner = "/".join(owner)
-        try:
-            name, _ = name_with_tag.split("@")
-            slug_without_tag = joined_owner + name
-        except ValueError:
-            slug_without_tag = self.slug
-        return slug_without_tag
 
     def asdict(self) -> dict:
-        return {"action_slug": self.slug, "docker_related_action": self.docker_related}
+        return {
+            "action_slug": self.slug,
+            "action_name": self.name,
+            "action_slug_noTag": self.slug_without_tag,
+            "action_tag": self.tag,
+            "docker_related_action": self.docker_related,
+        }
 
     def __repr__(self) -> str:
         return f'Action("{self.slug}")'
@@ -184,25 +165,43 @@ class WorkflowAnalyzer:
         for workflow_path in data_dir.glob("**/*.y*ml"):
             self.workflows.append(Workflow(data_dir, workflow_path))
 
-        actions_per_workflow = []
-        for workflow in self.workflows:
-            actions_per_workflow.append([action.slug for action in workflow.actions])
+        self.frequent_actions_df = self._get_frequently_cooccurring_actions(
+            support=0.05, include_tags=True
+        )
+        self.frequent_actions_noTags_df = self._get_frequently_cooccurring_actions(
+            support=0.05, include_tags=False
+        )
 
-        actions_without_tags_per_workflow = []
-        for workflow in self.workflows:
-            actions_without_tags_per_workflow.append(
-                [action.slug_without_tag for action in workflow.actions]
-            )
+        print(self.frequent_actions_df)
+        print(self.frequent_actions_noTags_df)
 
+    def _mine_frequent_patterns(
+        self, transactions_df: pd.DataFrame, support: float
+    ) -> pd.DataFrame:
         te = TransactionEncoder()
-        encoding = te.fit(actions_per_workflow).transform(actions_per_workflow)
+        encoding = te.fit(transactions_df).transform(transactions_df)
         encoding_df = pd.DataFrame(encoding, columns=te.columns_)
-        frequent_itemsets = apriori(encoding_df, min_support=0.1, use_colnames=True)
-        print(frequent_itemsets)
+        frequent_itemsets = apriori(encoding_df, min_support=support, use_colnames=True)
         frequent_itemsets["length"] = frequent_itemsets["itemsets"].apply(
             lambda x: len(x)
         )
-        print(frequent_itemsets[frequent_itemsets["length"] >= 2].loc[8]["itemsets"])
+        return frequent_itemsets
+
+    def _get_frequently_cooccurring_actions(
+        self, support: float, include_tags: bool = True
+    ) -> pd.DataFrame:
+        actions_per_workflow = []
+        if include_tags:
+            for workflow in self.workflows:
+                actions_per_workflow.append(
+                    [action.slug for action in workflow.actions]
+                )
+        else:
+            for workflow in self.workflows:
+                actions_per_workflow.append(
+                    [action.slug_without_tag for action in workflow.actions]
+                )
+        return self._mine_frequent_patterns(actions_per_workflow, support=support)
 
 
 if __name__ == "__main__":
@@ -211,6 +210,3 @@ if __name__ == "__main__":
     workflows_df = pd.DataFrame.from_records(
         [workflow.asdict() for workflow in wa.workflows]
     )
-
-    print(workflows_df.loc[workflows_df["docker_related_commands"]])
-    print(workflows_df["docker_commands"].dtype)
