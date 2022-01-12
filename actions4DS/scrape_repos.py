@@ -179,70 +179,82 @@ class DataScienceScraper(GitHubScraper):
 
             slug = self.queue.get()
 
-            # `None` is used as a sentinel to mark the end of the queue
-            if slug is None:
-                self.queue.task_done()
-                break
-
-            # Check GitHub API rate limit: wait if needed
-            self._check_rate_limit(github)
-
             try:
-                repo = github.get_repo(str(slug))  # API request (+1)
 
-                if self.gh_actions_release_condition:
-                    # Decide based on last-commit date
-                    is_last_commit_date_ok = False
-                    commits = repo.get_commits(since=self.ACCEPTANCE_DATE)
+                # `None` is used as a sentinel to mark the end of the queue
+                if slug is None:
+                    self.queue.task_done()
+                    break
 
-                    try:
-                        commits[0]  # API request (+1)
-                        is_last_commit_date_ok = True
-                    except IndexError:
-                        self.scraping_stats["repos_inactive_before_GHA_release"] += 1
-                        self.progress.console.log(
-                            f':cross_mark: Repo inactive before GHA release: "{slug}".',
-                        )
+                # Check GitHub API rate limit: wait if needed
+                self._check_rate_limit(github)
 
-                if (not self.gh_actions_release_condition) or is_last_commit_date_ok:
+                try:
+                    repo = github.get_repo(str(slug))  # API request (+1)
 
-                    # Decide based on keywords presence in repo topics or description
-                    try:
-                        topics = " ".join(repo.get_topics())  # API request (+1)
-                    except UnknownObjectException:
-                        topics = ""
-                    description = repo.description or ""
+                    if self.gh_actions_release_condition:
+                        # Decide based on last-commit date
+                        is_last_commit_date_ok = False
+                        commits = repo.get_commits(since=self.ACCEPTANCE_DATE)
 
-                    keyword_found = False
-                    for keyword in self.KEYWORDS:
-                        keyword_in_topics = re.search(keyword, topics, re.IGNORECASE)
-                        keyword_in_description = re.search(
-                            keyword, description, re.IGNORECASE
-                        )
-                        if keyword_in_topics or keyword_in_description:
-                            keyword_found = True
-                            break
+                        try:
+                            commits[0]  # API request (+1)
+                            is_last_commit_date_ok = True
+                        except IndexError:
+                            self.scraping_stats[
+                                "repos_inactive_before_GHA_release"
+                            ] += 1
+                            self.progress.console.log(
+                                f':cross_mark: Repo inactive before GHA release: "{slug}".',
+                            )
 
-                    if keyword_found:
-                        self.selected_slugs.append(slug)
-                        self.progress.console.log(
-                            f':thumbs_up: Data science repo found: "{slug}".',
-                        )
-                        self.scraping_stats["selected_repos"] += 1
+                    if (
+                        not self.gh_actions_release_condition
+                    ) or is_last_commit_date_ok:
 
+                        # Decide based on keywords presence in repo topics or description
+                        try:
+                            topics = " ".join(repo.get_topics())  # API request (+1)
+                        except UnknownObjectException:
+                            topics = ""
+                        description = repo.description or ""
+
+                        keyword_found = False
+                        for keyword in self.KEYWORDS:
+                            keyword_in_topics = re.search(
+                                keyword, topics, re.IGNORECASE
+                            )
+                            keyword_in_description = re.search(
+                                keyword, description, re.IGNORECASE
+                            )
+                            if keyword_in_topics or keyword_in_description:
+                                keyword_found = True
+                                break
+
+                        if keyword_found:
+                            self.selected_slugs.append(slug)
+                            self.progress.console.log(
+                                f':thumbs_up: Data science repo found: "{slug}".',
+                            )
+                            self.scraping_stats["selected_repos"] += 1
+
+                except Exception:
+                    self.scraping_stats["repos_not_available"] += 1
+                    self.progress.console.log(
+                        f':cross_mark: Repository not available: "{slug}".',
+                    )
+                finally:
+                    self.progress.update(
+                        self.task,
+                        advance=1,
+                        selected=self.scraping_stats["selected_repos"],
+                    )
             except Exception:
-                self.scraping_stats["repos_not_available"] += 1
-                self.progress.console.log(
-                    f':cross_mark: Repository not available: "{slug}".',
-                )
+                logging.info("THREAD_EXCEPTION")
+                logging.info(traceback.format_exc())
+                time.sleep(10)
             finally:
-                self.progress.update(
-                    self.task,
-                    advance=1,
-                    selected=self.scraping_stats["selected_repos"],
-                )
-
-            self.queue.task_done()
+                self.queue.task_done()
 
     def scrape_repos(self) -> list[GitHubSlug]:
         """Scrape GitHub repos for data science.
@@ -359,97 +371,106 @@ class WorkflowScraper(GitHubScraper):
 
             slug = self.queue.get()
 
-            # `None` is used as a sentinel to mark the end of the queue
-            if slug is None:
-                self.queue.task_done()
-                break
-
-            # Check GitHub API rate limit: wait if needed
-            self._check_rate_limit(github)
-
             try:
-                repo = github.get_repo(str(slug))
+
+                # `None` is used as a sentinel to mark the end of the queue
+                if slug is None:
+                    self.queue.task_done()
+                    break
+
+                # Check GitHub API rate limit: wait if needed
+                self._check_rate_limit(github)
 
                 try:
-                    workflows = repo.get_contents(".github/workflows")
+                    repo = github.get_repo(str(slug))
 
-                    # Update scraping stats
-                    self.selected_slugs.append(slug)
-                    self.scraping_stats["repos_with_at_least_one_workflow"] += 1
-                    self.scraping_stats["total_number_of_workflows"] += len(workflows)
+                    try:
+                        workflows = repo.get_contents(".github/workflows")
 
-                    # Download workflows
-                    self.progress.console.log(
-                        f':down_arrow: Downloading workflows from "{slug}"...',
-                    )
-                    local_repo_path = Path(
-                        self.data_dir, slug.repo_owner, slug.repo_name
-                    )
-                    if not local_repo_path.exists():
-                        local_repo_path.mkdir(parents=True)
+                        # Update scraping stats
+                        self.selected_slugs.append(slug)
+                        self.scraping_stats["repos_with_at_least_one_workflow"] += 1
+                        self.scraping_stats["total_number_of_workflows"] += len(
+                            workflows
+                        )
 
-                        for workflow in workflows:
+                        # Download workflows
+                        self.progress.console.log(
+                            f':down_arrow: Downloading workflows from "{slug}"...',
+                        )
+                        local_repo_path = Path(
+                            self.data_dir, slug.repo_owner, slug.repo_name
+                        )
+                        if not local_repo_path.exists():
+                            local_repo_path.mkdir(parents=True)
 
-                            workflow_filename = Path(workflow.path).name
-                            local_workflow_path = local_repo_path / workflow_filename
+                            for workflow in workflows:
 
-                            try:
-                                yaml_string = workflow.decoded_content.decode("utf8")
-                                yaml_object = yaml_parser.load(yaml_string)
-                                yaml_parser.dump(yaml_object, local_workflow_path)
-                                self.scraping_stats[
-                                    "total_number_of_valid_workflows"
-                                ] += 1
-                            except Exception as e:
-                                self.scraping_stats[
-                                    "total_number_of_invalid_workflows"
-                                ] += 1
-                                self.progress.console.log(
-                                    f':cross_mark: Invalid YAML file: \
-                                        "{workflow_filename}".\
-                                            Exception: "{repr(e)}"',
+                                workflow_filename = Path(workflow.path).name
+                                local_workflow_path = (
+                                    local_repo_path / workflow_filename
                                 )
 
+                                try:
+                                    yaml_string = workflow.decoded_content.decode(
+                                        "utf8"
+                                    )
+                                    yaml_object = yaml_parser.load(yaml_string)
+                                    yaml_parser.dump(yaml_object, local_workflow_path)
+                                    self.scraping_stats[
+                                        "total_number_of_valid_workflows"
+                                    ] += 1
+                                except Exception as e:
+                                    self.scraping_stats[
+                                        "total_number_of_invalid_workflows"
+                                    ] += 1
+                                    self.progress.console.log(
+                                        f':cross_mark: Invalid YAML file: \
+                                            "{workflow_filename}".\
+                                                Exception: "{repr(e)}"',
+                                    )
+
+                            self.progress.console.log(
+                                f':thumbs_up: Downloaded workflows from "{slug}".',
+                            )
+                        else:
+                            self.progress.console.log(
+                                "Target directory already exists. Download canceled.",
+                            )
+
+                    except UnknownObjectException:
                         self.progress.console.log(
-                            f':thumbs_up: Downloaded workflows from "{slug}".',
-                        )
-                    else:
-                        self.progress.console.log(
-                            "Target directory already exists. Download canceled.",
+                            f'No workflows found in "{slug}". Skipping...',
                         )
 
                 except UnknownObjectException:
+                    self.scraping_stats["repos_not_found"] += 1
                     self.progress.console.log(
-                        f'No workflows found in "{slug}". Skipping...',
+                        f':cross_mark: Repository not found: "{slug}".',
                     )
-
-            # TODO: Distinguish between 404 errors (i.e., those represented by the
-            # `UnknownObjectException`) and other kinds of errors that arise
-            # while requesting repos from GitHub (see the same TODO above for more info)
-            except UnknownObjectException:
-                self.scraping_stats["repos_not_found"] += 1
-                self.progress.console.log(
-                    f':cross_mark: Repository not found: "{slug}".',
-                )
+                except Exception:
+                    self.scraping_stats["repos_not_found"] += 1
+                    self.progress.console.log(
+                        f':cross_mark: Error while accessing the repo: "{slug}".',
+                    )
+                    self.progress.console.log(traceback.format_exc())
+                finally:
+                    self.progress.update(
+                        self.task,
+                        advance=1,
+                        repos_with_workflows=self.scraping_stats[
+                            "repos_with_at_least_one_workflow"
+                        ],
+                        valid_workflows=self.scraping_stats[
+                            "total_number_of_valid_workflows"
+                        ],
+                    )
             except Exception:
-                self.scraping_stats["repos_not_found"] += 1
-                self.progress.console.log(
-                    f':cross_mark: Error while accessing the repo: "{slug}".',
-                )
-                self.progress.console.log(traceback.format_exc())
+                logging.info("THREAD_EXCEPTION")
+                logging.info(traceback.format_exc())
+                time.sleep(10)
             finally:
-                self.progress.update(
-                    self.task,
-                    advance=1,
-                    repos_with_workflows=self.scraping_stats[
-                        "repos_with_at_least_one_workflow"
-                    ],
-                    valid_workflows=self.scraping_stats[
-                        "total_number_of_valid_workflows"
-                    ],
-                )
-
-            self.queue.task_done()
+                self.queue.task_done()
 
     def scrape_repos(self) -> list[GitHubSlug]:
         """Scrape GitHub repos for GitHub Actions workflows.
