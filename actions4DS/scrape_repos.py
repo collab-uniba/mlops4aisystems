@@ -389,10 +389,6 @@ class WorkflowScraper(GitHubScraper):
 
                         # Update scraping stats
                         self.selected_slugs.append(slug)
-                        self.scraping_stats["repos_with_at_least_one_workflow"] += 1
-                        self.scraping_stats["total_number_of_workflows"] += len(
-                            workflows
-                        )
 
                         # Download workflows
                         self.progress.console.log(
@@ -404,31 +400,46 @@ class WorkflowScraper(GitHubScraper):
                         if not local_repo_path.exists():
                             local_repo_path.mkdir(parents=True)
 
+                            number_of_workflows_in_current_repo = 0
                             for workflow in workflows:
 
-                                workflow_filename = Path(workflow.path).name
-                                local_workflow_path = (
-                                    local_repo_path / workflow_filename
-                                )
+                                workflow_path = Path(workflow.path)
+                                if workflow_path.suffix in ["yml", "yaml"]:
 
-                                try:
-                                    yaml_string = workflow.decoded_content.decode(
-                                        "utf8"
-                                    )
-                                    yaml_object = yaml_parser.load(yaml_string)
-                                    yaml_parser.dump(yaml_object, local_workflow_path)
                                     self.scraping_stats[
-                                        "total_number_of_valid_workflows"
+                                        "total_number_of_workflows"
                                     ] += 1
-                                except Exception as e:
-                                    self.scraping_stats[
-                                        "total_number_of_invalid_workflows"
-                                    ] += 1
-                                    self.progress.console.log(
-                                        f':cross_mark: Invalid YAML file: \
-                                            "{workflow_filename}".\
-                                                Exception: "{repr(e)}"',
+                                    number_of_workflows_in_current_repo += 1
+
+                                    workflow_filename = workflow_path.name
+                                    local_workflow_path = (
+                                        local_repo_path / workflow_filename
                                     )
+
+                                    try:
+                                        yaml_string = workflow.decoded_content.decode(
+                                            "utf8"
+                                        )
+                                        yaml_object = yaml_parser.load(yaml_string)
+                                        yaml_parser.dump(
+                                            yaml_object, local_workflow_path
+                                        )
+                                        self.scraping_stats[
+                                            "total_number_of_valid_workflows"
+                                        ] += 1
+                                    except Exception as e:
+                                        self.scraping_stats[
+                                            "total_number_of_invalid_workflows"
+                                        ] += 1
+                                        self.progress.console.log(
+                                            f':cross_mark: Invalid YAML file: \
+                                                "{workflow_filename}".\
+                                                    Exception: "{repr(e)}"',
+                                        )
+                            if number_of_workflows_in_current_repo > 0:
+                                self.scraping_stats[
+                                    "repos_with_at_least_one_workflow"
+                                ] += 1
 
                             self.progress.console.log(
                                 f':thumbs_up: Downloaded workflows from "{slug}".',
