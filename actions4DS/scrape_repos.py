@@ -179,12 +179,12 @@ class DataScienceScraper(GitHubScraper):
 
             slug = self.queue.get()
 
-            try:
+            # `None` is used as a sentinel to mark the end of the queue
+            if slug is None:
+                self.queue.task_done()
+                break
 
-                # `None` is used as a sentinel to mark the end of the queue
-                if slug is None:
-                    self.queue.task_done()
-                    break
+            try:
 
                 # Check GitHub API rate limit: wait if needed
                 self._check_rate_limit(github)
@@ -371,12 +371,12 @@ class WorkflowScraper(GitHubScraper):
 
             slug = self.queue.get()
 
-            try:
+            # `None` is used as a sentinel to mark the end of the queue
+            if slug is None:
+                self.queue.task_done()
+                break
 
-                # `None` is used as a sentinel to mark the end of the queue
-                if slug is None:
-                    self.queue.task_done()
-                    break
+            try:
 
                 # Check GitHub API rate limit: wait if needed
                 self._check_rate_limit(github)
@@ -404,19 +404,18 @@ class WorkflowScraper(GitHubScraper):
                             for workflow in workflows:
 
                                 workflow_path = Path(workflow.path)
-                                if workflow_path.suffix in ["yml", "yaml"]:
+                                if workflow_path.suffix in [".yml", ".yaml"]:
 
                                     self.scraping_stats[
                                         "total_number_of_workflows"
                                     ] += 1
                                     number_of_workflows_in_current_repo += 1
 
-                                    workflow_filename = workflow_path.name
-                                    local_workflow_path = (
-                                        local_repo_path / workflow_filename
-                                    )
-
                                     try:
+                                        workflow_filename = workflow_path.name
+                                        local_workflow_path = (
+                                            local_repo_path / workflow_filename
+                                        )
                                         yaml_string = workflow.decoded_content.decode(
                                             "utf8"
                                         )
