@@ -243,16 +243,17 @@ class Workflow:
         run_commands = []
 
         for job in self._yaml["jobs"].keys():
-            for step in self._yaml["jobs"][job]["steps"]:
-                action = step.get("uses")
-                if action:
-                    action = str(action)
-                    actions.append(action)
+            if self._yaml["jobs"][job].get("steps"):
+                for step in self._yaml["jobs"][job]["steps"]:
+                    action = step.get("uses")
+                    if action:
+                        action = str(action)
+                        actions.append(action)
 
-                run_command = step.get("run")
-                if run_command:
-                    run_command = str(run_command)
-                    run_commands.append(run_command)
+                    run_command = step.get("run")
+                    if run_command:
+                        run_command = str(run_command)
+                        run_commands.append(run_command)
 
         return actions, run_commands
 
