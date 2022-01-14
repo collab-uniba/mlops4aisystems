@@ -154,7 +154,10 @@ class Action:
 class RunCommand:
     def __init__(self, command: str) -> None:
         self.command: str = command
-        self.docker_related: bool = self._is_docker_related()
+        self.docker_related: bool = self._contains_keyword("docker")
+        self.deploy_related: bool = self._contains_keyword("deploy")
+        self.publish_related: bool = self._contains_keyword("publish")
+        self.package_related: bool = self._contains_keyword("package")
         self.docker_commands: list[str] = (
             self._get_docker_commands() if self.docker_related else []
         )
@@ -162,11 +165,14 @@ class RunCommand:
     def asdict(self) -> dict:
         return {
             "docker_related_run_command": self.docker_related,
+            "deploy_related_run_command": self.deploy_related,
+            "publish_related_run_command": self.publish_related,
+            "package_related_run_command": self.package_related,
             "docker_commands": self.docker_commands,
         }
 
-    def _is_docker_related(self) -> bool:
-        return True if re.search("docker", self.command, re.IGNORECASE) else False
+    def _contains_keyword(self, keyword: str) -> bool:
+        return True if re.search(keyword, self.command, re.IGNORECASE) else False
 
     def _get_docker_commands(self) -> list[str]:
         return re.findall(
@@ -214,6 +220,9 @@ class Workflow:
             "docker_related_actions": any([a.docker_related for a in self.actions]),
             "n_of_run_commands": len(self.commands),
             "docker_related_commands": any([c.docker_related for c in self.commands]),
+            "deploy_related_commands": any([c.deploy_related for c in self.commands]),
+            "publish_related_commands": any([c.publish_related for c in self.commands]),
+            "package_related_commands": any([c.package_related for c in self.commands]),
             "docker_commands": list(self.docker_commands.keys()),
         }
         return d
