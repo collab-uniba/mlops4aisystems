@@ -1,6 +1,6 @@
-# Replication package for the CAIN 2022 experimentation
+# Replication package for the EMSE 2022 paper 
 
-This is the replication package of the CAIN 2022 paper on the use of GitHub Actions in data science projects.
+This is the replication package of the EMSE 2022 NIER track paper "A Preliminary Analysis of CI/CD for AI-enabled systems".
 
 ## Setup
 
