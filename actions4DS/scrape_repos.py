@@ -483,7 +483,7 @@ class WorkflowScraper(GitHubScraper):
                 self.queue.task_done()
 
     def scrape_repos(self) -> list[GitHubSlug]:
-        """Scrape GitHub repos for GitHub Actions workflows.
+        """Scrape GitHub repos.
 
         Args:
             github (Github): main class of the PyGithub library
