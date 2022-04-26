@@ -204,14 +204,16 @@ class DataScienceScraper(GitHubScraper):
                                 "repos_inactive_before_GHA_release"
                             ] += 1
                             self.progress.console.log(
-                                f':cross_mark: Repo inactive before GHA release: "{slug}".',
+                                ":cross_mark: "
+                                f'Repo inactive before GHA release: "{slug}".',
                             )
 
                     if (
                         not self.gh_actions_release_condition
                     ) or is_last_commit_date_ok:
 
-                        # Decide based on keywords presence in repo topics or description
+                        # Decide based on keywords presence in repo topics
+                        # or description
                         try:
                             topics = " ".join(repo.get_topics())  # API request (+1)
                         except UnknownObjectException:

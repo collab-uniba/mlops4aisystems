@@ -1,13 +1,12 @@
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from config import DATA_DIR, DUMPS_DIR
-from mlxtend import frequent_patterns
 from mlxtend.frequent_patterns import apriori
 from mlxtend.preprocessing import TransactionEncoder
 from models import GitHubSlug
@@ -18,7 +17,7 @@ from ruamel.yaml import YAML
 class Action:
 
     scraping_cache: dict = {}
-    BASE_GITHUB_URL = "https://github.com"
+    BASE_GITHUB_URL: str = "https://github.com"
 
     def __init__(
         self,
@@ -38,9 +37,9 @@ class Action:
 
         self.docker_related = self._is_docker_related()
 
-        self.parsed_marketplace_page: BeautifulSoup = (
-            self._get_parsed_marketplace_page()
-        )
+        self.parsed_marketplace_page: Optional[
+            BeautifulSoup
+        ] = self._get_parsed_marketplace_page()
 
         self.is_from_verified_creator = None
         self.categories = None
@@ -130,7 +129,8 @@ class Action:
         else:
             res = (
                 True
-                if self.parsed_marketplace_page.find_all(
+                if self.parsed_marketplace_page
+                and self.parsed_marketplace_page.find_all(
                     "svg", class_="octicon-verified"
                 )
                 else False
@@ -138,17 +138,19 @@ class Action:
             self.scraping_cache[self.slug_without_tag]["from_verified_creator"] = res
             return res
 
-    def _get_action_categories(self) -> tuple:
+    def _get_action_categories(self) -> Optional[tuple]:
         cache = self.scraping_cache[self.slug_without_tag]["categories"]
         if cache:
             return cache
-        else:
+        elif self.parsed_marketplace_page:
             res = tuple(
                 c.text.strip()
                 for c in self.parsed_marketplace_page.find_all("a", class_="topic-tag")
             )
             self.scraping_cache[self.slug_without_tag]["categories"] = res
             return res
+        else:
+            return None
 
 
 class RunCommand:
@@ -193,7 +195,7 @@ class RunCommand:
             r"cml-?.*(?: --?\S*)* (\S*).*",
             self.command,
             re.IGNORECASE,
-        ) 
+        )
 
 
 class Workflow:
@@ -364,14 +366,14 @@ if __name__ == "__main__":
     wa = WorkflowAnalyzer(DATA_DIR)
 
     # Serializing dataframes
-    wa.workflows_df.to_pickle(DUMPS_DIR / "workflows_df.pkl")
-    wa.actions_df.to_pickle(DUMPS_DIR / "actions_df.pkl")
-    wa.frequent_actions_df.to_pickle(DUMPS_DIR / "frequent_actions_df.pkl")
+    wa.workflows_df.to_pickle(str(DUMPS_DIR / "workflows_df.pkl"))
+    wa.actions_df.to_pickle(str(DUMPS_DIR / "actions_df.pkl"))
+    wa.frequent_actions_df.to_pickle(str(DUMPS_DIR / "frequent_actions_df.pkl"))
     wa.frequent_actions_noTags_df.to_pickle(
-        DUMPS_DIR / "frequent_actions_noTags_df.pkl"
+        str(DUMPS_DIR / "frequent_actions_noTags_df.pkl")
     )
     wa.frequent_docker_commands_subsample_df.to_pickle(
-        DUMPS_DIR / "frequent_docker_commands_subsample_df.pkl"
+        str(DUMPS_DIR / "frequent_docker_commands_subsample_df.pkl")
     )
 
     print("Done.")

@@ -12,7 +12,7 @@ from models import GitHubSlug
 # Method 1
 # Get repositories which use CML
 def get_repos_cml() -> list[GitHubSlug]:
-    """Get the list of repo slugs from an input file, 
+    """Get the list of repo slugs from an input file,
        which contains the list of repositories with CML.
 
     Returns:
@@ -21,9 +21,9 @@ def get_repos_cml() -> list[GitHubSlug]:
     """
 
     LOGGING_CONTEXT = "[Getting slugs for CML dataset]"
-    
+
     filepath = Path(BASE_DIR, "cml-repos.txt")
-    with open(filepath, mode="r", encoding="UTF-8") as f:
+    with open(filepath, encoding="UTF-8") as f:
         urls = f.read().splitlines()
     logging.info(LOGGING_CONTEXT + f"Total number of CML repositories: {len(urls)}.")
 
