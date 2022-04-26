@@ -9,6 +9,8 @@ from pathlib import Path
 import pretty_errors
 from rich.logging import RichHandler
 
+BASE_DIR = Path(__file__).parent.parent.absolute()
+
 # Load environment variables from `env.ini`
 config = configparser.ConfigParser()
 env_file = Path("env.ini")

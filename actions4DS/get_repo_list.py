@@ -5,6 +5,7 @@ Generate a list of GitHub repositories containing data science projects.
 import logging
 from pathlib import Path
 
+from config import BASE_DIR
 from models import GitHubSlug
 
 
@@ -20,8 +21,7 @@ def get_repos_cml() -> list[GitHubSlug]:
     """
 
     LOGGING_CONTEXT = "[Getting slugs for CML dataset]"
-    BASE_DIR = Path(__file__).parent.parent.absolute()
-
+    
     filepath = Path(BASE_DIR, "cml-repos.txt")
     with open(filepath, mode="r", encoding="UTF-8") as f:
         urls = f.read().splitlines()
