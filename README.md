@@ -51,7 +51,7 @@ python actions4DS/analyze_workflows.py
 | https://github.com/akdsingh/cml                                                     | Test-drive                                            | Yes           |
 | https://github.com/akdsingh/cml_data                                                | Test-drive                                            | Yes           |
 | https://github.com/amitvkulkarni/Bring-DevOps-to-Machine-Learning-with-CML          | Educational                                           | Yes           |
-| https://github.com/AmonKi/abtest-mlops                                              | PR code submitted to Smart Ad server                  | Yes           |
+| https://github.com/AmonKi/abtest-mlops                                              | Empty workflow file                                   | No            |
 | https://github.com/ArilessTir/MLOPS_wine                                            | Test-drive                                            | Yes           |
 | https://github.com/AscendNTNU/perception_testing_21                                 | Drone software testing                                | Yes           |
 | https://github.com/CasualModel/CancerCausality                                      | Test-drive                                            | Yes           |
