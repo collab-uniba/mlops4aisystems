@@ -35,6 +35,7 @@ class Action:
         self.slug_without_tag = match.group(1)
         self.tag = match.group(3)
 
+        self.cml_related = self._is_cml_related()
         self.docker_related = self._is_docker_related()
 
         self.parsed_marketplace_page: Optional[
@@ -53,6 +54,7 @@ class Action:
             "action_name": self.name,
             "action_slug_noTag": self.slug_without_tag,
             "action_tag": self.tag,
+            "cml_related_action": self.cml_related,
             "docker_related_action": self.docker_related,
             "available_in_marketplace": True if self.parsed_marketplace_page else False,
             "from_verified_creator": True if self.is_from_verified_creator else False,
@@ -67,6 +69,9 @@ class Action:
 
     def __str__(self) -> str:
         return self.slug
+
+    def _is_cml_related(self) -> bool:
+        return True if re.search("cml", self.slug, re.IGNORECASE) else False
 
     def _is_docker_related(self) -> bool:
         return True if re.search("docker", self.slug, re.IGNORECASE) else False
@@ -156,6 +161,12 @@ class Action:
 class RunCommand:
     def __init__(self, command: str) -> None:
         self.command: str = command
+
+        self.cml_related: bool = self._is_cml_related()
+        self.cml_commands: list[str] = (
+            self._get_cml_commands() if self.cml_related else []
+        )
+
         self.docker_related: bool = self._is_docker_related()
         self.docker_commands: list[str] = (
             self._get_docker_commands() if self.docker_related else []
@@ -163,9 +174,21 @@ class RunCommand:
 
     def asdict(self) -> dict:
         return {
+            "cml_related_run_command": self.cml_related,
+            "cml_commands": self.cml_commands,
             "docker_related_run_command": self.docker_related,
             "docker_commands": self.docker_commands,
         }
+
+    def _is_cml_related(self) -> bool:
+        return True if re.search("cml", self.command, re.IGNORECASE) else False
+
+    def _get_cml_commands(self) -> list[str]:
+        return re.findall(
+            r"cml[ -]([^ \n]*)([ -].*)?",
+            self.command,
+            re.IGNORECASE,
+        )
 
     def _is_docker_related(self) -> bool:
         return True if re.search("docker", self.command, re.IGNORECASE) else False
@@ -187,16 +210,6 @@ class RunCommand:
             re.IGNORECASE,
         )
 
-    def _is_cml_related(self) -> bool:
-        return True if re.search("cml", self.command, re.IGNORECASE) else False
-
-    def _get_cml_commands(self) -> list[str]:
-        return re.findall(
-            r"cml-?.*(?: --?\S*)* (\S*).*",
-            self.command,
-            re.IGNORECASE,
-        )
-
 
 class Workflow:
     def __init__(self, data_dir: Path, local_path: Path) -> None:
@@ -211,8 +224,10 @@ class Workflow:
         raw_actions, raw_commands = self._get_raw_components()
         self.actions: list[Action] = [Action(a) for a in raw_actions]
         self.commands: list[RunCommand] = [RunCommand(c) for c in raw_commands]
+        self.cml_commands: Counter = Counter()
         self.docker_commands: Counter = Counter()
         for run_command in self.commands:
+            self.cml_commands.update(run_command.cml_commands)
             self.docker_commands.update(run_command.docker_commands)
 
     @property
@@ -233,8 +248,11 @@ class Workflow:
             "name": self.name,
             "trigger_events": self.events,
             "n_of_actions": len(self.actions),
+            "cml_related_actions": any([a.cml_related for a in self.actions]),
             "docker_related_actions": any([a.docker_related for a in self.actions]),
             "n_of_run_commands": len(self.commands),
+            "cml_related_commands": any([c.cml_related for c in self.commands]),
+            "cml_commands": list(self.cml_commands.keys()),
             "docker_related_commands": any([c.docker_related for c in self.commands]),
             "docker_commands": list(self.docker_commands.keys()),
         }
@@ -313,6 +331,13 @@ class WorkflowAnalyzer:
             support=0.05, include_tags=False
         )
 
+        # CML commands
+        self.frequent_cml_commands_subsample_df = (
+            self._get_frequently_cooccurring_cml_commands(
+                support=0.05, include_workflows_without_cml_commands=False
+            )
+        )
+
         # Docker commands
         self.frequent_docker_commands_subsample_df = (
             self._get_frequently_cooccurring_docker_commands(
@@ -361,6 +386,16 @@ class WorkflowAnalyzer:
                 docker_commands_per_workflow.append(workflow_docker_commands)
         return self._mine_frequent_patterns(docker_commands_per_workflow, support)
 
+    def _get_frequently_cooccurring_cml_commands(
+        self, support: float, include_workflows_without_cml_commands: bool = True
+    ) -> pd.DataFrame:
+        cml_commands_per_workflow = []
+        for workflow in self.workflows:
+            workflow_cml_commands = workflow.cml_commands.keys()
+            if include_workflows_without_cml_commands or len(workflow_cml_commands) > 0:
+                cml_commands_per_workflow.append(workflow_cml_commands)
+        return self._mine_frequent_patterns(cml_commands_per_workflow, support)
+
 
 if __name__ == "__main__":
     wa = WorkflowAnalyzer(DATA_DIR)
@@ -371,6 +406,9 @@ if __name__ == "__main__":
     wa.frequent_actions_df.to_pickle(str(DUMPS_DIR / "frequent_actions_df.pkl"))
     wa.frequent_actions_noTags_df.to_pickle(
         str(DUMPS_DIR / "frequent_actions_noTags_df.pkl")
+    )
+    wa.frequent_cml_commands_subsample_df.to_pickle(
+        str(DUMPS_DIR / "frequent_cml_commands_subsample_df.pkl")
     )
     wa.frequent_docker_commands_subsample_df.to_pickle(
         str(DUMPS_DIR / "frequent_docker_commands_subsample_df.pkl")
