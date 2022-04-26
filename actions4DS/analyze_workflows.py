@@ -175,6 +175,26 @@ class RunCommand:
             re.IGNORECASE,
         )
 
+    def _is_dvc_related(self) -> bool:
+        return True if re.search("dvc", self.command, re.IGNORECASE) else False
+
+    def _get_dvc_commands(self) -> list[str]:
+        return re.findall(
+            r"dvc(?: --?\S*)* (\S*) .*",
+            self.command,
+            re.IGNORECASE,
+        )
+
+    def _is_cml_related(self) -> bool:
+        return True if re.search("cml", self.command, re.IGNORECASE) else False
+
+    def _get_cml_commands(self) -> list[str]:
+        return re.findall(
+            r"cml-?.*(?: --?\S*)* (\S*).*",
+            self.command,
+            re.IGNORECASE,
+        ) 
+
 
 class Workflow:
     def __init__(self, data_dir: Path, local_path: Path) -> None:
