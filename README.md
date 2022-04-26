@@ -35,4 +35,5 @@ Within an active Poetry shell session, run the scripts as follows:
 
 ```shell
 python actions4DS/main.py
+python actions4DS/analyze_workflows.py
 ```
