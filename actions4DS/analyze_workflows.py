@@ -184,11 +184,7 @@ class RunCommand:
         return True if re.search("cml", self.command, re.IGNORECASE) else False
 
     def _get_cml_commands(self) -> list[str]:
-        return re.findall(
-            r"cml[ -]([^ \n]*)([ -].*)?",
-            self.command,
-            re.IGNORECASE,
-        )
+        return re.findall(r"cml[ -]([^ \n]*)(?:[ -].*)?", self.command)
 
     def _is_docker_related(self) -> bool:
         return True if re.search("docker", self.command, re.IGNORECASE) else False
